@@ -21,7 +21,9 @@ import dev.slopbot.element.service.SlopEngine
 import dev.slopbot.element.spi.SlopbotDatabase
 import dev.slopbot.element.spi.SlopbotDatabaseProvider
 import dev.slopbot.element.spi.SlopbotOidcConfig
-import dev.slopbot.element.spi.WorkerRelay
+import dev.slopbot.element.ws.PageRelay
+import dev.slopbot.element.ws.PodWebsocketClient
+import dev.slopbot.element.ws.PodWsProtocol
 
 /**
  * The element's Guice wiring — a PrivateModule; the surface other Elements (or
@@ -51,8 +53,12 @@ class SlopModule : PrivateModule() {
         bind(McpTools::class.java).asEagerSingleton()
         bind(McpHandler::class.java).asEagerSingleton()
 
-        // The thin forwarder's ingestion surface + the playback relay chain.
-        bind(WorkerRelay::class.java).asEagerSingleton()
+        // The websocket surfaces: the ELM's authenticated CLIENT to the pod's
+        // agent-address websocket (events in, playback commands out) and the
+        // pages' SERVER relay (the overlay + the deck).
+        bind(PageRelay::class.java).asEagerSingleton()
+        bind(PodWsProtocol::class.java).asEagerSingleton()
+        bind(PodWebsocketClient::class.java).asEagerSingleton()
 
         // The REST auth gate.
         bind(SlopAuth::class.java).asEagerSingleton()

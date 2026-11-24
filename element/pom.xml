@@ -68,6 +68,11 @@
             <groupId>jakarta.websocket</groupId>
             <artifactId>jakarta.websocket-api</artifactId>
         </dependency>
+        <!-- The websocket CLIENT API (Session, ContainerProvider…) is a separate artifact in Jakarta 2.x. -->
+        <dependency>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-client-api</artifactId>
+        </dependency>
         <!-- Swagger Annotations for API Documentation. -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>

@@ -57,15 +57,15 @@ class SlopApplication : Application() {
         @ElementDefaultAttribute("slop:mcp")
         val OIDC_SCOPE: String = "dev.slopbot.element.oidc.scope"
 
-        // The thin forwarder's playback relay (the pod's webserver). Empty
-        // disables the relay; see WorkerRelay.
+        // The thin forwarder's agent-address websocket (the ELM connects OUT to
+        // it as the authenticated client). Empty = pod-less (MCP-only ELM).
         @JvmField
         @ElementDefaultAttribute("")
-        val WORKER_RELAY_URL: String = "dev.slopbot.element.worker.relay.url"
+        val POD_WS_URL: String = "dev.slopbot.element.pod.ws.url"
 
         @JvmField
         @ElementDefaultAttribute("")
-        val WORKER_RELAY_TOKEN: String = "dev.slopbot.element.worker.relay.token"
+        val POD_WS_TOKEN: String = "dev.slopbot.element.pod.ws.token"
 
         const val OPENAPI_TAG: String = "SlopBot AI"
     }
@@ -75,7 +75,6 @@ class SlopApplication : Application() {
         SlopResource::class.java,
         AdminResource::class.java,
         McpResource::class.java,
-        WorkerResource::class.java,
 
         // Exposes the default security rules for the API (the builtin Elements
         // auth system via the attribute above).
