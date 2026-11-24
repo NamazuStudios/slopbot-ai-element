@@ -3,8 +3,10 @@ package dev.slopbot.element.rest
 import dev.getelements.elements.sdk.Element
 import dev.getelements.elements.sdk.ElementSupplier
 import dev.slopbot.element.dao.SlopAuditDao
+import dev.slopbot.element.dao.SlopAuditor
 import dev.slopbot.element.dao.SlopDao
-import dev.slopbot.element.model.SlopAudit
+import dev.slopbot.element.model.Participant
+import dev.slopbot.element.service.SlopAssetAdmin
 import dev.slopbot.element.service.SlopEngine
 import jakarta.inject.Inject
 import jakarta.ws.rs.Consumes
@@ -17,7 +19,6 @@ import jakarta.ws.rs.Produces
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import java.security.MessageDigest
 
 /**
  * The admin surface — SUPERUSER + acting-identity header. Every mutating
@@ -34,6 +35,8 @@ class AdminResource {
     private val slopDao: SlopDao by lazy { element.getServiceLocator().getInstance(SlopDao::class.java) }
     private val auditDao: SlopAuditDao by lazy { element.getServiceLocator().getInstance(SlopAuditDao::class.java) }
     private val auth: SlopAuth by lazy { element.getServiceLocator().getInstance(SlopAuth::class.java) }
+    private val assetAdmin: SlopAssetAdmin by lazy { element.getServiceLocator().getInstance(SlopAssetAdmin::class.java) }
+    private val auditor: SlopAuditor by lazy { element.getServiceLocator().getInstance(SlopAuditor::class.java) }
 
     @POST
     @Path("/impersonate")
@@ -114,6 +117,52 @@ class AdminResource {
         return Response.ok(auditDao.list()).build()
     }
 
+    /**
+     * The content-attribution repair: reassigns a slop's owner (the tenant
+     * streamer) and/or creator (the chat user who prompted) — body
+     * `{owner?, creator?}` (creator: `{id?, login, displayName}`). Audited
+     * with the payload digest.
+     */
+    @POST
+    @Path("/{name}/reassign")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun reassign(
+        @PathParam("name") name: String,
+        @HeaderParam(SlopAuth.ACTING_IDENTITY_HEADER) actingAs: String?,
+        body: Map<String, Any?>?,
+    ): Response {
+        val user = auth.requireSuperuser()
+        val ownerLogin = body?.get("owner")?.toString()?.takeIf { it.isNotBlank() }
+        @Suppress("UNCHECKED_CAST")
+        val creator = (body?.get("creator") as? Map<String, Any?>)?.takeIf { it.isNotEmpty() }?.let {
+            Participant(
+                id = it["id"]?.toString(),
+                login = it["login"]?.toString(),
+                displayName = it["displayName"]?.toString(),
+            )
+        }
+        if (ownerLogin == null && creator == null) {
+            throw WebApplicationException(
+                Response.status(400).entity(mapOf("error" to "nothing to reassign (owner?, creator?)")).build(),
+            )
+        }
+        val updated = try {
+            assetAdmin.reassign(name, ownerLogin, creator, user.name, actingAs?.trim()?.lowercase(), body)
+        } catch (e: NoSuchElementException) {
+            throw WebApplicationException(
+                Response.status(404).entity(mapOf("error" to (e.message ?: "not found"))).build(),
+            )
+        }
+        return Response.ok(
+            mapOf(
+                "ok" to true,
+                "name" to updated.name,
+                "owner" to updated.streamer,
+                "creator" to updated.creator,
+            ),
+        ).build()
+    }
+
     private fun moderationAction(
         name: String,
         action: String,
@@ -132,21 +181,8 @@ class AdminResource {
         return Response.ok(mapOf("ok" to ok)).build()
     }
 
-    /** The append-only audit row: who, whom, what, when, payload digest. */
+    /** The append-only audit row (the shared [SlopAuditor]). */
     private fun audit(actor: String?, actingAs: String?, action: String, target: String?, payload: Map<String, Any?>?) {
-        val row = SlopAudit()
-        row.actor = actor ?: ""
-        row.actingAs = actingAs
-        row.action = action
-        row.target = target
-        row.payloadDigest = payload?.let { digest(it) }
-        row.timestamp = System.currentTimeMillis()
-        auditDao.record(row)
-    }
-
-    private fun digest(payload: Map<String, Any?>): String {
-        val json = com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload)
-        val bytes = MessageDigest.getInstance("SHA-256").digest(json.toByteArray(Charsets.UTF_8))
-        return bytes.joinToString("") { "%02x".format(it) }
+        auditor.record(actor, actingAs, action, target, payload)
     }
 }

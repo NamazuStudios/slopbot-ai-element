@@ -94,6 +94,8 @@ class StandardSlopDao @Inject constructor(
         patch.tags?.let { slop.tags = it.toMutableList(); touched = true }
         patch.agentRemarks?.let { slop.agentRemarks = it.toMutableList(); touched = true }
         patch.contentRemarks?.let { slop.contentRemarks = it.toMutableList(); touched = true }
+        patch.owner?.let { slop.streamer = it; touched = true }
+        patch.creator?.let { slop.creator = it; touched = true }
         if (!touched) return null
         datastore.save(slop)
         return slop
@@ -145,6 +147,14 @@ class StandardSlopAssetDao @Inject constructor(
             .filter(Filters.eq("name", name))
             .firstOrNull()
 
+    override fun findById(id: String): SlopAsset? = try {
+        datastore.find(SlopAsset::class.java)
+            .filter(Filters.eq("_id", org.bson.types.ObjectId(id)))
+            .firstOrNull()
+    } catch (e: IllegalArgumentException) {
+        null // not an ObjectId hex string
+    }
+
     override fun put(asset: SlopAsset, bytes: ByteArray): SlopAsset {
         val ref = sourceStore.put(asset.name, asset.mimeType, asset.metadata.originalFilename, bytes)
         asset.source = ref
@@ -153,7 +163,28 @@ class StandardSlopAssetDao @Inject constructor(
         return asset
     }
 
+    override fun replaceBytes(name: String, bytes: ByteArray): SlopAsset? {
+        val asset = findByName(name) ?: return null
+        val previous = asset.source
+        val ref = sourceStore.put(asset.name, asset.mimeType, asset.metadata.originalFilename, bytes)
+        // The previous revision is pinned: it stays in the store and in the
+        // record's history — never deleted, so anything holding the old ref
+        // (a bundle already inlined, an MCP `assets.read` id in flight) keeps
+        // working against the old revision.
+        if (previous != null) asset.revisions.add(previous)
+        asset.source = ref
+        datastore.save(asset)
+        return asset
+    }
+
     override fun readBytes(asset: SlopAsset): ByteArray? = sourceStore.get(asset.source)
+
+    override fun setState(name: String, state: String): SlopAsset? {
+        val asset = findByName(name) ?: return null
+        asset.state = state
+        datastore.save(asset)
+        return asset
+    }
 
     override fun delete(name: String): Boolean {
         val asset = findByName(name) ?: return false

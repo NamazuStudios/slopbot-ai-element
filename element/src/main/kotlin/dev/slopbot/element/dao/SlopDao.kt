@@ -20,6 +20,10 @@ data class SlopPatch(
     val tags: List<String>? = null,
     val agentRemarks: List<Remark>? = null,
     val contentRemarks: List<Remark>? = null,
+    /** Attribution repair (admin reassign): the tenant owner (streamer). */
+    val owner: Participant? = null,
+    /** Attribution repair (admin reassign): the chat user who prompted. */
+    val creator: Participant? = null,
 )
 
 /**

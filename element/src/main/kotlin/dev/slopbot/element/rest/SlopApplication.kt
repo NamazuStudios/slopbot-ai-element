@@ -74,6 +74,7 @@ class SlopApplication : Application() {
         // Endpoints
         SlopResource::class.java,
         AdminResource::class.java,
+        SlopAssetAdminResource::class.java,
         McpResource::class.java,
 
         // Exposes the default security rules for the API (the builtin Elements

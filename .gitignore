@@ -6,3 +6,6 @@ target/
 *.iml
 .vscode/
 .DS_Store
+
+# The dashboard UI plugin build (node_modules stays out; built bundles ARE committed)
+ui/node_modules/

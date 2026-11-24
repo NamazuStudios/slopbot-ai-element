@@ -60,6 +60,8 @@ class InMemorySlopDao : SlopDao {
         patch.tags?.let { slop.tags = it.toMutableList(); touched = true }
         patch.agentRemarks?.let { slop.agentRemarks = it.toMutableList(); touched = true }
         patch.contentRemarks?.let { slop.contentRemarks = it.toMutableList(); touched = true }
+        patch.owner?.let { slop.streamer = it; touched = true }
+        patch.creator?.let { slop.creator = it; touched = true }
         return if (touched) slop else null
     }
 

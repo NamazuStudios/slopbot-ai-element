@@ -19,6 +19,7 @@ import dev.slopbot.element.engine.SlopConfig
 import dev.slopbot.element.engine.SlopEvents
 import dev.slopbot.element.engine.SlopMetaParser
 import dev.slopbot.element.engine.SlopNamer
+import dev.slopbot.element.engine.SlopReferenceScanner
 import dev.slopbot.element.engine.TriggerEngine
 import dev.slopbot.element.model.Participant
 import dev.slopbot.element.model.Remark
@@ -80,6 +81,8 @@ class SlopEngine @Inject constructor(
     val events: SlopEvents,
     val config: SlopConfig,
 ) : SlopEngineService {
+
+    private val log = org.slf4j.LoggerFactory.getLogger(SlopEngine::class.java)
 
     private fun now(): Long = System.currentTimeMillis()
     private val random = java.util.Random()
@@ -742,9 +745,18 @@ class SlopEngine @Inject constructor(
 
         var total = 0
         val assets = mutableListOf<Map<String, Any?>>()
-        // The slop's own assets (tagged ["slop", "<file name>"]).
+        // The slop's own assets (tagged ["slop", "<file name>"]). A retired or
+        // missing asset is logged and skipped — never a bundle failure.
         for (asset in assetDao.list(name)) {
-            val bytes = assetDao.readBytes(asset) ?: continue
+            if (asset.state == SlopAsset.STATE_RETIRED) {
+                log.info("asset {}: retired — skipping in bundle {}", asset.name, name)
+                continue
+            }
+            val bytes = assetDao.readBytes(asset)
+            if (bytes == null) {
+                log.info("asset {}: no bytes in store — skipping in bundle {}", asset.name, name)
+                continue
+            }
             total += bytes.size
             if (total > MAX_ASSET_BYTES) {
                 throw IllegalArgumentException("asset bundle exceeds ${MAX_ASSET_BYTES / (1024 * 1024)} MB")
@@ -759,17 +771,21 @@ class SlopEngine @Inject constructor(
                 ),
             )
         }
-        // Shared sound library: any shared sound the slop samples by name is
-        // inlined here, so slops get a full effect library without bundling files.
-        val refs = Regex("""sound\.sample\(\s*['"`]([^'"`]+)""")
-            .findAll(code)
-            .map { it.groupValues[1].lowercase() }
-            .toList()
+        // Shared library: whatever the slop samples by name is inlined here, so
+        // slops get a full effect library without bundling files — sounds via
+        // `sound.sample('name')`, videos via `ctx.media.video('name')`. The
+        // same scan powers the admin surface's referenced-by counts.
+        val refs = SlopReferenceScanner.allRefs(code)
         val shared = assetDao.list("shared").groupBy { it.displayName.lowercase() }
         for (ref in refs) {
             if (assets.any { it["name"] == ref }) continue
-            val asset = shared[ref]?.firstOrNull() ?: continue
-            val bytes = assetDao.readBytes(asset) ?: continue
+            val asset = shared[ref]?.firstOrNull()
+            if (asset == null || asset.state == SlopAsset.STATE_RETIRED) continue
+            val bytes = assetDao.readBytes(asset)
+            if (bytes == null) {
+                log.info("asset {}: no bytes in store — skipping in bundle {}", asset.name, name)
+                continue
+            }
             total += bytes.size
             if (total > MAX_ASSET_BYTES) {
                 throw IllegalArgumentException("asset bundle exceeds ${MAX_ASSET_BYTES / (1024 * 1024)} MB")
@@ -778,7 +794,7 @@ class SlopEngine @Inject constructor(
                 mapOf(
                     "name" to ref,
                     "file" to (asset.metadata.originalFilename ?: asset.name),
-                    "kind" to "audio",
+                    "kind" to asset.kind.lowercase(),
                     "mime" to asset.mimeType,
                     "base64" to Base64.getEncoder().encodeToString(bytes),
                 ),

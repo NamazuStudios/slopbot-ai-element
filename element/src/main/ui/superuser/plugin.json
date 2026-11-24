@@ -1,0 +1,11 @@
+{
+  "schema": "1",
+  "entries": [
+    {
+      "label": "SlopBot AI Assets",
+      "icon": "Package",
+      "bundlePath": "plugin.bundle.js",
+      "route": "slopbot-ai-assets"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+/* Minimal dev-only styles (the shipped bundle uses the dashboard's own
+   stylesheet; this exists so the standalone dev server looks sane). */
+:root { color-scheme: light dark; }
+body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 1rem; }
+button { cursor: pointer; }
+table { border-spacing: 0; }
+input[type='file'] { max-width: 24rem; }

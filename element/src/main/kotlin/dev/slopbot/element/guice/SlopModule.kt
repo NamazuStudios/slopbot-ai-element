@@ -4,6 +4,7 @@ import com.google.inject.PrivateModule
 import dev.slopbot.element.dao.GridFsSourceStore
 import dev.slopbot.element.dao.SlopAssetDao
 import dev.slopbot.element.dao.SlopAuditDao
+import dev.slopbot.element.dao.SlopAuditor
 import dev.slopbot.element.dao.SlopDao
 import dev.slopbot.element.dao.SlopHistoryDao
 import dev.slopbot.element.dao.SourceStore
@@ -17,6 +18,7 @@ import dev.slopbot.element.mcp.McpHandler
 import dev.slopbot.element.mcp.McpTools
 import dev.slopbot.element.mcp.OidcValidator
 import dev.slopbot.element.rest.SlopAuth
+import dev.slopbot.element.service.SlopAssetAdmin
 import dev.slopbot.element.service.SlopEngine
 import dev.slopbot.element.spi.SlopbotDatabase
 import dev.slopbot.element.spi.SlopbotDatabaseProvider
@@ -47,6 +49,10 @@ class SlopModule : PrivateModule() {
         bind(SlopConfig::class.java).asEagerSingleton()
         bind(SlopEngine::class.java).asEagerSingleton()
         expose(SlopEngine::class.java)
+
+        // The asset-admin surface (upload/replace/retire/delete/reassign).
+        bind(SlopAuditor::class.java).asEagerSingleton()
+        bind(SlopAssetAdmin::class.java).asEagerSingleton()
 
         // The MCP surface.
         bind(OidcValidator::class.java).toProvider(SlopbotOidcConfig::class.java).asEagerSingleton()

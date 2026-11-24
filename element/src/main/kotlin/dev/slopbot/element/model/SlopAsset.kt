@@ -33,9 +33,24 @@ class SlopAsset {
 
     var mimeType: String = ""
 
+    /**
+     * `ACTIVE|RETIRED`. Retired assets are excluded from NEW bundles; existing
+     * bundles keep working, and a missing/retired asset never fails a bundle
+     * (the bundler logs and skips). Deletion is a separate, guarded operation.
+     */
+    var state: String = STATE_ACTIVE
+
     var metadata: Metadata = Metadata()
 
     var source: LargeObjectRef? = null
+
+    /**
+     * Previous source revisions (oldest first; the current one lives in
+     * `source`). Replace = a new LargeObject per revision — the old revision
+     * is never deleted from the store, so anything pinned to it keeps working
+     * (the binding "Replace = new revision, slops pinned to old" decision).
+     */
+    var revisions: MutableList<LargeObjectRef> = mutableListOf()
 
     var agentRemarks: MutableList<Remark> = mutableListOf()
 
@@ -44,5 +59,8 @@ class SlopAsset {
     companion object {
         const val KIND_AUDIO = "AUDIO"
         const val KIND_VIDEO = "VIDEO"
+
+        const val STATE_ACTIVE = "ACTIVE"
+        const val STATE_RETIRED = "RETIRED"
     }
 }

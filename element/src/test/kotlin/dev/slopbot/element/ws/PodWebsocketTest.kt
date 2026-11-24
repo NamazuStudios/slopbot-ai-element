@@ -25,12 +25,26 @@ class PodWebsocketTest {
         override fun list(tag: String?): List<dev.slopbot.element.model.SlopAsset> =
             if (tag == null) assets.toList() else assets.filter { it.tags.contains(tag) }
         override fun findByName(name: String) = assets.find { it.name == name }
+        override fun findById(id: String) = assets.find { it.id.toHexString() == id }
         override fun put(asset: dev.slopbot.element.model.SlopAsset, bytes: ByteArray): dev.slopbot.element.model.SlopAsset {
             asset.source = store.put(asset.name, asset.mimeType, asset.metadata.originalFilename, bytes)
             assets.add(asset)
             return asset
         }
+        override fun replaceBytes(name: String, bytes: ByteArray): dev.slopbot.element.model.SlopAsset? {
+            val asset = findByName(name) ?: return null
+            val previous = asset.source
+            val ref = store.put(asset.name, asset.mimeType, asset.metadata.originalFilename, bytes)
+            if (previous != null) asset.revisions.add(previous)
+            asset.source = ref
+            return asset
+        }
         override fun readBytes(asset: dev.slopbot.element.model.SlopAsset) = store.get(asset.source)
+        override fun setState(name: String, state: String): dev.slopbot.element.model.SlopAsset? {
+            val asset = findByName(name) ?: return null
+            asset.state = state
+            return asset
+        }
         override fun delete(name: String): Boolean = assets.removeIf { it.name == name }
     }
 
