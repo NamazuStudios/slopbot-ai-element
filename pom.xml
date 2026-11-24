@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>dev.slopbot</groupId>
+    <artifactId>element-aggregator</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>SlopBot AI Element</name>
+    <description>The SlopBot AI slop engine as a Namazu Elements Element (the ELM).</description>
+
+    <modules>
+        <module>api</module>
+        <module>element</module>
+    </modules>
+
+    <properties>
+        <encoding>UTF-8</encoding>
+        <!-- The build toolchain: JDK 21 (the Kotlin 2.1 compiler cannot parse
+             Ubuntu's 4-segment JDK 25 version string). Point JAVA_HOME here when
+             building; the compiler targets 21 either way. -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <kotlin.version>2.1.0</kotlin.version>
+        <kotlin.compiler.incremental>false</kotlin.compiler.incremental>
+        <elements.version>3.9.0</elements.version>
+        <morphia.version>2.4.14</morphia.version>
+        <mongodb.version>4.10.2</mongodb.version>
+        <jackson.version>2.17.2</jackson.version>
+        <guice.version>7.0.0</guice.version>
+        <rs.api>4.0.0</rs.api>
+        <jakarta.websocket.version>2.1.0</jakarta.websocket.version>
+        <junit.version>5.10.2</junit.version>
+        <logback.version>1.2.3</logback.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
+        <api.classifier>${project.groupId}.api</api.classifier>
+    </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                    <configuration>
+                        <!-- Integration tests (real MongoDB required) are excluded from the default
+                             build; they run under the -Pintegration profile only. -->
+                        <excludes>
+                            <exclude>**/*IT.java</exclude>
+                            <exclude>**/*IT.class</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-maven-plugin</artifactId>
+                    <version>${kotlin.version}</version>
+                    <configuration>
+                        <jvmTarget>21</jvmTarget>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <!--
+        Everything in dependencyManagement serves the purpose of centralizing the versions and configurations of
+        artifacts used. Every project will refer to this section when including them on the classpath.
+    -->
+    <dependencyManagement>
+        <dependencies>
+
+            <!--
+                The BOM for Namazu Elements incorporates all the official SDK packages. The packages are provided
+                with correct scope and version matching the requested version.
+            -->
+
+            <dependency>
+                <groupId>dev.getelements.elements</groupId>
+                <artifactId>sdk-bom</artifactId>
+                <version>${elements.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--
+                The Element's API and Implementation. Note that the API is provided meaning that it will not be packaged
+                directly with the Element. Rather it will be added to the bundle as an API dependency.
+            -->
+
+            <dependency>
+                <groupId>dev.slopbot</groupId>
+                <artifactId>api</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.slopbot</groupId>
+                <artifactId>api</artifactId>
+                <version>${project.version}</version>
+                <classifier>${api.classifier}</classifier>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.slopbot</groupId>
+                <artifactId>element</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
+
+            <!--
+                Morphia + the Mongo driver: provided by the platform's sdk-mongo Element at runtime, needed at
+                compile time for the element-owned entities. The versions match the platform's own build.
+            -->
+            <dependency>
+                <groupId>dev.morphia.morphia</groupId>
+                <artifactId>morphia-core</artifactId>
+                <version>${morphia.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongodb.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-core</artifactId>
+                <version>${mongodb.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>namazu</id>
+            <url>https://maven.namazustudios.com/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+</project>

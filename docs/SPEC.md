@@ -27,9 +27,16 @@ slopbot-ai-element/
   pom.xml                  # parent: dev.slopbot:element-aggregator
   api/                     # exported interfaces + DTOs (classified jar)
   element/                 # impl: entities, DAO, REST, MCP, engine, guice → builds the .elm
-  worker/                  # the pod's main-container runner (worker mode)
   docs/                    # this spec
 ```
+
+> **SCOPE CHANGE (designer decision, 2026-11-24 — "thin forwarder"):** the former
+> `worker/` module (a Kotlin `WorkerMain` pod runner) is **REMOVED**. The pod's
+> main container is a thin Node forwarder implemented in the POD repo
+> (NamazuStudios/slopbot-ai-pod); this element repo ships ONLY the ELM server
+> side. All trigger evaluation runs ELM-side, via the worker event-ingestion
+> surface below. The spec's earlier "in the pod's worker, the live bot" split is
+> withdrawn; the engine is one ELM-side engine plus the ingestion surface.
 
 Module conventions (from `NamazuStudios/element-example` — copy its pom shapes):
 - `api` — pure interfaces/DTOs; classified jar `dev.slopbot.api`.
@@ -73,6 +80,7 @@ Session auth = Elements session (`Authorization` bearer / session forms per the 
 - `POST /slop/api/slop/pending/{name}/approve|reject` — moderation verdicts (management).
 - `POST /slop/api/slop/delete/{name}` — delete (management).
 - `POST /slop/api/slop/build` — enqueue a build for the agent (management; one at a time — the `generation` slot).
+- **Worker ingestion (NEW, thin-forwarder scope): `POST /slop/api/worker/events`** — the pod's Node thin forwarder forwards chat lines, follows/subs/resubs/subgifts/raids/cheers/redemptions, and stream-start/stream-end notices here. Pod-OIDC-gated (the same token middleware as the MCP surface: 401 missing/expired/foreign, 403 wrong scope). Accepts a single event object or a `{"events": [...]}` batch (the forwarder may coalesce). Runs the trigger loop ELM-side: first-ever tracking, allow-list, cooldowns, flood cap, immediate-vs-queued dispatch. Playback commands go back to the worker through the ELM's relay chain (`dev.slopbot.element.worker.relay.url`/`.token` attributes → the pod's webserver; end-to-end token verification).
 - Admin (SUPERUSER + acting-identity header): `POST /slop/api/admin/slop/impersonate {streamer}`; `POST /slop/api/admin/slop/impersonate/exit`; `GET /slop/api/admin/slop/queues`; `GET /slop/api/admin/slop/registry`; `POST /slop/api/admin/slop/{name}/suspend|reinstate|remove`; `GET /slop/api/admin/slop/moderation-queue`; `GET /slop/api/admin/slop/audit`. Every mutating admin route records `actingAs` + `actor` in an append-only `slop_audit` collection (who, whom, what, when, payload digest).
 
 ## MCP tool surface (in this ELM; the agent's ONLY data access)
@@ -108,6 +116,14 @@ Tools (8 verbs; JSON-RPC method names `tools/call` with `name`):
 
 ## Worker mode (`worker/`)
 
+> **REMOVED** (thin-forwarder scope change, 2026-11-24). The pod's main
+> container is a thin Node forwarder in the POD repo
+> (NamazuStudios/slopbot-ai-pod): it monitors the streamer's chat/EventSub and
+> forwards events to `POST /slop/api/worker/events`. The trigger loop runs
+> ELM-side in this element's engine; playback commands relay back through the
+> ELM's `WorkerRelay` chain to the pod's webserver. This repo ships only the
+> ELM.
+
 `WorkerMain.kt`: boots a minimal Elements runtime carrying this element (mirror element-example's debug runner); env-injected config (`SLOP_STREAMER`, `SLOP_MCP_URL`, `SLOP_OIDC_TOKEN`, Twitch credentials via the Conductor-injected secret); connects Twitch IRC (keepalive ping every 15s, force-reconnect when pongs stop) + EventSub; runs the trigger loop (evaluate → flood-cap → dispatch immediate/queued); drives inference through the pod-local proxy (OpenCode API behind the security proxy — the ELM connects headlessly); serves a **lightweight webserver** (the relay endpoint the ELM connects to: events relayed, OIDC-verified end to end); lingers ~10 minutes after stream end, then exits. Exit code 0 on clean shutdown — the Conductor job wrapper retries the pod until successful exit.
 
 ## Tests (must pass before review)
@@ -124,3 +140,44 @@ Tools (8 verbs; JSON-RPC method names `tools/call` with `name`):
 ## Build
 
 `mvn install` produces `element/target/<artifact>-<version>.elm` (elm plugin per element-example). Java 21, Kotlin 2.1. `mvn verify` runs all tests.
+
+## Implementation notes (first pass, 2026-11-24)
+
+**Status: implemented and green.** `mvn install` succeeds from a clean checkout with all tests passing (see counts below). The engine is one ELM-side engine (Kotlin) plus the thin-forwarder ingestion surface — per the 2026-11-24 scope change.
+
+### Scope change — "thin forwarder" (2026-11-24)
+
+- The `worker/` module (Kotlin `WorkerMain.kt`: Twitch IRC/EventSub client, trigger loop, relay webserver, MCP client) is **REMOVED** from this repo. The pod's main container is a thin Node forwarder implemented in NamazuStudios/slopbot-ai-pod.
+- The pod forwards events to the ELM over **`POST /slop/api/worker/events`** (pod-OIDC-gated; single events, `{"events":[...]}` batches, and `{"type":"stream-start"|"stream-end"}` notices). All trigger evaluation (matching, cooldowns, flood cap, allow-list, first-ever tracking, immediate-vs-queued) runs **ELM-side**; playback commands relay back through the ELM's `WorkerRelay` chain (element attributes `dev.slopbot.element.worker.relay.url` / `.token`) to the pod's webserver.
+- Worker env contract (now in the POD repo): `SLOP_STREAMER`, `SLOP_MCP_URL`, `SLOP_OIDC_TOKEN`, **`SLOP_PROXY_AUDIENCE`** (added to the pod's allow-listed env — the audience value the security proxy validates tokens against; the worker presents tokens through the proxy, whose audience claim must match), `SLOP_RELAY_PORT`, `SLOP_LINGER_MINUTES`, Twitch credentials.
+
+### Implemented
+
+- **Modules:** `api` (Kotlin DTOs + `SlopEngineService` interface, classified jar) and `element` (Morphia entities, DAOs, engine ports, REST, MCP, Guice → the `.elm` archive). Platform: `dev.getelements.elements:*:3.9.0`, Java 21, Kotlin 2.1.0, Morphia 2.4.14, MongoDB driver 4.10.2 (the platform's own pinned versions).
+- **Entities:** `Slop`, `SlopAsset`, `SlopAudit`, `SlopModification` (Morphia, `@Entity("slops"|"slopAssets"|"slop_audit"|"slop_mod_history")`) with embedded `Participant`, `Trigger`, `Remark` (agentRemarks/contentRemarks split + `linkedDoc`), `Metadata`, `LargeObjectRef`; unique `name` indexes via `@Indexed(options = @IndexOptions(unique = true))`.
+- **DAO layer:** `SlopDao`/`SlopAssetDao` (+ `SlopAuditDao`, `SlopHistoryDao`) — tenant-scoped queries (`streamer.login`) and the write-through semantics ported from `lib/store.js` (put upsert, trigger/cooldown/suspend/moderation patches, `$inc` play stats, delete-with-own-assets, source read).
+- **Engine ports (behavior-exact against the JS oracle):** the bouncer (`inspectSlopCode` — 250×1024 UTF-16-unit cap, meta/init/frame checks, the full 14-entry denylist with the original messages), `metaOf` (line-anchored scalar extraction, template-literal/single-line controls, bracket-matched triggers with trailing-comma tolerance, 12-entry cap), naming (author-slug, 39-char cap, base-36 timestamp fallbacks, `-2`/`-3` collision counters, safeName/shortName), trigger engine (all 7 chat modes, `triggerTypesFor` mapping, who-gating, firstchat semantics, `normalizeTrigger` with the reference's coercions, allow-list gating), cooldowns (arm-on-trigger only, streamer clear), flood cap (default 6/min with the throttled visible note), first-ever tracking (chat + follow, never reset; synthetic dispatches don't consume slots), immediate-vs-queued dispatch, cameos (cooldown-aware, no self-cameo, chain depth 1), and the redemption-queue/play state machine.
+- **REST:** all routes under `/slop/api` (`dev.getelements.elements.element.rs.root = "/slop/api"`), overlay routes OPEN (snapshot, SSE, bundle, play, heartbeat, ended), management routes session-gated (401 anonymous / 403 viewer / 200 streamer-or-superuser), admin routes SUPERUSER + `X-Slop-Acting-As` with append-only audit rows (SHA-256 payload digest).
+- **MCP:** `POST /slop/api/mcp` (JSON-RPC `initialize`/`tools/list`/`tools/call`) + `GET /slop/api/mcp/events` (SSE); the 8 verbs backed by the DAOs; OIDC bearer middleware (RS256 via cached JWKS, iss/aud/exp/scope — 401/403 matrix); 8 MiB `assets.read` cap; 50-modification running history with previous source revisions in large-object history.
+- **Ingestion:** `POST /slop/api/worker/events` (pod-OIDC-gated; batches + stream notices) + `WorkerRelay` (playback relay chain back to the pod).
+- **Tests:** 152 unit tests green (bouncer 25, metaOf 18, naming 13, trigger engine 39, config 11, engine state machine 15, auth matrix 7, MCP surface 13 incl. the live-JWKS token matrix and create→moderate→play with zero filesystem, worker ingestion 11 covering ingestion → trigger evaluation → dispatch with the same cooldown/flood-cap cases) + 2 integration tests (`SlopDaoRoundTripIT`, `-Pintegration`, `MONGO_URI`-gated) **verified against a real MongoDB**: Slop → GridFS source → read → equality, write-throughs, play stats, tenant scoping, delete-with-assets, and the asset round-trip.
+
+### Deviations from the spec (adapted to the real platform API)
+
+1. **`@Entity(useDatabase = "slopbot")` is not expressible** — Morphia 2.4's `@Entity` carries no `useDatabase` attribute. The element instead builds its own private Morphia Datastore over the shared `slopbot` database (`SlopbotDatabase`, from the injected platform `MongoClient`; collections `slops`/`slopAssets`/`slop_audit`/`slop_mod_history` + GridFS bucket `largeObjects` all live there). The spec's intent — one shared `slopbot` DB — is honored on the real API.
+2. **The bouncer's size message says "250 KB"** (the JS's dynamic `Math.round(MAX_SLOP_CODE_BYTES / 1024)`), not the spec's quoted "244 KB" — the spec's own binding rule is "error messages match the original", and the original computes 250.
+3. **Playback queue depth** uses `maxQueueDepth` (default 10) per the spec; the JS reference hard-codes 5 in `play()`/`playImmediate()`.
+4. **Cameo cooldowns:** the spec (binding) says cameos obey cooldowns; the JS's play route never checks them. Cameos (`chained=true`) check the window and refuse a self-cameo; manual plays never do.
+5. **Tenant-unscoped management routes** (config, queue ops, build): an authenticated USER passes as the self-serve tenant (every Twitch login IS a streamer identity; data access is DAO-scoped). The viewer→403 case is enforced on tenant-scoped routes (a USER touching another tenant's resource).
+6. **First-ever chat tracking** lives in `dispatchTrigger` (the ELM's only chat entry point) rather than the reference's IRC line handler — the worker (now the thin forwarder) has no engine state; synthetic dispatches carry `synthetic=true` so they never consume first-ever slots.
+7. **REST resources resolve services via `ElementSupplier`/`getServiceLocator()`** (the element-example pattern — the Jersey runtime doesn't inject Guice directly into resources).
+8. **JWKS/OIDC is real but issuer-configured:** the validator fetches+cache-caches JWKS (discovery → `<issuer>/.well-known/openid-configuration`, fallback `/.well-known/jwks.json`), verifies RS256, iss/aud/exp/nbf/scope. The issuer URL is an element attribute (`dev.slopbot.element.oidc.issuer`) — until the deployment wires a real issuer the MCP/ingestion surfaces fail closed (401). This is the "needs the platform" item: the bound instance's OIDC endpoints.
+9. **GridFS is used directly** (`GridFSBuckets` on the element's Datastore, bucket `largeObjects`, metadata path/mimeType/state/originalFilename per the manual) rather than the platform `LargeObjectDao` service — the Large Object API wiring (CDN URLs, `assets.read` via `LargeObjectDao.findLargeObject`) is the platform-integration follow-up; the `LargeObjectRef` shape already matches.
+10. **First-ever seen-sets persist in-process** for the first pass (the reference persisted them to a JSON file). Durable per-channel first-ever tracking wants a small platform collection — follow-up.
+
+### Needs the platform (follow-ups)
+
+- Real OIDC issuer wiring for the pod/MCP tokens (JWKS endpoint + audience claims minted by the bound instance).
+- `LargeObjectDao` integration for CDN-backed asset reads (the MCP `assets.read` returns the large-object id; the fetch path is wired once the platform's Large Object API is bound into the element).
+- Durable first-ever tracking and the config persistence (currently in-process; a `slop_config` collection would match the reference's merged-write semantics).
+- The moderation build queue consumes MCP clients (the agent polls/creates via MCP); the deck's `generation` slot is ELM-side state.
