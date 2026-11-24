@@ -1,0 +1,37 @@
+# The element's own CI: build + test the Kotlin element on every PR and main
+# push. The .elm artifact uploads on main (the deployable artifact; the pod
+# repo's worker image consumes the element's release, so keep main green).
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-elm:
+    name: Build + test element
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"   # Kotlin 2.1 rejects newer JDKs outright
+          cache: maven
+      - name: Build + verify
+        run: mvn -B --no-transfer-progress verify
+      - name: Upload the .elm (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-elm
+          path: element/target/*.elm
+          if-no-files-found: error
+          retention-days: 14
