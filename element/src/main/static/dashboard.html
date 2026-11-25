@@ -123,7 +123,16 @@
     border-radius: 6px; padding: .15rem .5rem;
     font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: #ff5c5c;
   }
+  .cam-stage iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+    pointer-events: none; /* the drag surface owns the pointer; the stream plays muted beneath */
+  }
   .cam-stage .scene { position: absolute; inset: 0; display: grid; place-items: center; color: #2c376f; font-weight: 800; letter-spacing: .2em; font-size: .9rem; }
+  .prefix-row { display: flex; align-items: center; gap: .4rem; margin-top: .55rem; }
+  .prefix-row > b { color: var(--pink-soft); font-size: 1rem; }
+  .prefix-input { width: 90px; padding: .3rem .5rem !important; }
+  .prefix-hint { color: var(--muted); font-size: .78rem; }
+  .prefix-hint b { color: var(--text); }
   .cam-rect {
     position: absolute;
     border: 2px dashed var(--pink);
@@ -211,10 +220,23 @@ export function frame(ctx, t, dt) {}</textarea>
 
       <div class="card row">
         <div class="lab"><b>Default generation model</b><span>The model every build runs on (Hyper-metered)</span></div>
-        <select class="t" style="width:240px">
-          <option>Hyper · GLM 5.3 Flash</option>
-          <option>Hyper · Qwen3 8B</option>
-          <option>Hyper · auto (fastest available)</option>
+        <select class="t" style="width:240px" id="model-select">
+          <option value="" selected>agent default (gemini-4-neon)</option>
+          <option>gemini-4-neon</option>
+          <option>gemini-3.8-flash</option>
+          <option>gemini-3.7-flash</option>
+          <option>claude-haiku-4-5</option>
+          <option>grok-4.7</option>
+          <option>grok-build-0.1</option>
+          <option>qwen3.8-flash</option>
+          <option>qwen3.6-plus</option>
+          <option>qwen3.5-plus</option>
+          <option>gpt-5.4-mini</option>
+          <option>prism</option>
+          <option>prism-core</option>
+          <option>prism-flash</option>
+          <option>deepseek-v4.1-flash-1017</option>
+          <option>deepseek-v4.1-flash</option>
         </select>
       </div>
 
@@ -233,7 +255,8 @@ export function frame(ctx, t, dt) {}</textarea>
           </div>
           <div class="trigger-opt" id="trigger-chat">
             <div>
-              <div class="lab"><b>Chat command</b><span>A chat command starts a build</span></div>
+              <div class="lab"><b>Chat command</b><span>The command that starts a build — the prefix is always <b style="color:var(--text)">!</b></span>
+              <div class="prefix-row">!<input class="t prefix-input" id="chat-prefix" value="slop" spellcheck="false"> <span class="prefix-hint">viewers type <b id="prefix-preview">!slop</b> &lt;prompt&gt;</span></div></div>
               <div class="who-row">
                 <div class="who-label">who can use it</div>
                 <div class="who-opts">
@@ -251,9 +274,14 @@ export function frame(ctx, t, dt) {}</textarea>
 
       <div class="card" id="moderation-card">
         <div class="row">
-          <div class="lab"><b>Moderation level</b><span>teen · the tier every build is judged against</span></div>
+          <div class="lab"><b>Moderation level</b><span id="mod-note">Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.</span></div>
           <div style="display:flex; align-items:center; gap:.8rem;">
-            <span class="chip">teen</span>
+            <select class="t" style="width:130px" id="mod-level">
+              <option value="kid">kid</option>
+              <option value="teen" selected>teen</option>
+              <option value="adult">adult</option>
+              <option value="anything">anything*</option>
+            </select>
             <label class="expand-label" id="mod-advanced-toggle">⚙︎ advanced</label>
           </div>
         </div>
@@ -281,8 +309,13 @@ export function frame(ctx, t, dt) {}</textarea>
         </div>
         <div class="cam-wrap">
           <div class="cam-stage" id="cam-stage">
+            <iframe
+              id="twitch-embed"
+              src="https://player.twitch.tv/?channel=savorysailor&parent=${PLACEHOLDER_PARENT}&muted=true"
+              allowfullscreen
+              muted
+            ></iframe>
             <span class="live">● LIVE</span>
-            <div class="scene">STREAM PREVIEW</div>
             <div class="cam-rect" id="cam-rect">
               <span class="cam-tag">CAM</span>
               <span class="cam-handle" id="cam-handle"></span>
@@ -354,6 +387,29 @@ export function frame(ctx, t, dt) {}</textarea>
   });
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
+  });
+
+  // The Twitch embed's parent param must match the page's host.
+  const embed = document.getElementById('twitch-embed');
+  if (embed) {
+    embed.src = embed.src.replace('${PLACEHOLDER_PARENT}', window.location.hostname);
+  }
+
+  // The moderation tier's note follows the dropdown.
+  const MOD_NOTES = {
+    kid: 'Child-safe themes only. Very conservative in judgment.',
+    teen: 'Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.',
+    adult: 'Lewd content, sexual references, and drug or alcohol references allowed.',
+    anything: 'As objectionable as the model allows — minus what Twitch\'s guidelines forbid.',
+  };
+  document.getElementById('mod-level').addEventListener('change', (e) => {
+    document.getElementById('mod-note').textContent = MOD_NOTES[e.target.value] || '';
+  });
+
+  // The chat prefix's live preview.
+  const prefixInput = document.getElementById('chat-prefix');
+  prefixInput.addEventListener('input', () => {
+    document.getElementById('prefix-preview').textContent = '!' + (prefixInput.value.trim() || 'slop');
   });
 
   // Simple on/off toggles
