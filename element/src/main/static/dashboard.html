@@ -210,6 +210,19 @@
   .spt-test input { width: 100%; }
   .spt-test .lbl { color: var(--muted); font-size: .78rem; margin-bottom: .3rem; }
   .slop-modal .btns { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
+
+  /* slop-enabled checkbox + the editable trigger rows */
+  .spt-check { width: 18px; height: 18px; accent-color: var(--pink); cursor: pointer; }
+  .spt-enabled { margin: .8rem 0 .5rem; }
+  .spt-row .spt-edit { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .45rem; width: 100%; }
+  .spt-row .spt-edit select { width: auto; min-width: 118px; }
+  .spt-row .spt-edit input[data-patterns] { flex: 1; min-width: 160px; }
+  .spt-row .spt-edit .spt-kv { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .8rem; }
+  .spt-row .spt-edit .spt-tier { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: .25rem .7rem; cursor: pointer; }
+  .spt-row .spt-edit .spt-tier:has(input:checked) { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .14); }
+  .spt-list.disabled-list { opacity: .5; pointer-events: none; }
+  .slop-card.is-disabled { opacity: .55; }
+  .pill.disabled { background: rgba(154, 163, 208, .15); color: var(--muted); }
 </style>
 </head>
 <body>
@@ -488,12 +501,12 @@
   // ---------- slops (placeholder, per the look-and-feel pass) ----------
   // `added` = days ago, so the Oldest/Newest sorts are visible.
   const PLACEHOLDER_SLOPS = [
-    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2 },
-    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9 },
-    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4 },
-    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14 },
-    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1 },
-    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6 },
+    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2, enabled: true },
+    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9, enabled: true },
+    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4, enabled: true },
+    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14, enabled: false },
+    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1, enabled: true },
+    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6, enabled: true },
   ];
   const grid = document.getElementById('slops-grid');
   const search = document.getElementById('slop-search');
@@ -519,9 +532,10 @@
     }
     for (const s of items) {
       const el = document.createElement('div');
-      el.className = 'card slop-card';
+      const disabled = s.enabled === false;
+      el.className = 'card slop-card' + (disabled ? ' is-disabled' : '');
       el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
-        <div class="row"><span class="pill ${s.state}">${s.state}</span>
+        <div class="row"><span class="pill ${disabled ? 'disabled' : s.state}">${disabled ? 'disabled' : s.state}</span>
           <span style="display:flex; gap:.4rem;">
             <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.title}" title="Preview + triggers">⚙</button>
             <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
@@ -646,61 +660,81 @@
 
   // ---------- per-slop settings modal: preview + triggers ----------
   // Mirrors the monolith's per-slop settings screen (deck.js "slop trigger
-  // settings"): a preview stage on top, then every trigger that can make
-  // this slop play, and a test-chat input that live-matches chat triggers.
+  // settings"): a preview stage on top, then the slop's enable checkbox and
+  // every trigger that can make this slop play, and a test-chat input that
+  // live-matches chat triggers.
+  const CHAT_MODES = [
+    ['contains', 'contains'],
+    ['starts', 'begins with'],
+    ['ends', 'ends with'],
+    ['word', 'whole word'],
+  ];
   const TRIGGER_TYPES = [
-    ['chat', 'chat line'], ['firstchat', 'first-time chatter'], ['follow', 'follow'],
-    ['firstfollow', 'first-time follower'], ['sub', 'new sub'], ['resub', 'resub'],
-    ['subgift', 'sub gift'], ['raid', 'raid'], ['cheer', 'cheer'], ['redemption', 'redemption'],
+    ['firstchat', 'first-time chatter'], ['follow', 'follow'], ['firstfollow', 'first-time follower'],
+    ['sub', 'new sub'], ['resub', 'resub'], ['subgift', 'sub gift'],
+    ['raid', 'raid'], ['redemption', 'redemption'],
   ];
   const WHO_LABELS = { anyone: 'anyone', mods: 'mods+streamer', broadcaster: 'streamer only' };
+  // `playslop` is the !{playback command} trigger — every slop carries one,
+  // enabled by default; it is what makes the slop eligible for !slop <name>.
+  const playslopTrigger = () => ({ id: 'ps-' + Math.random().toString(36).slice(2, 6), type: 'playslop', enabled: true });
+  const withPlayslop = (extra) => [playslopTrigger(), ...extra];
   const TRIGGERS = {
-    'Rubbery Hotdog': [
+    'Rubbery Hotdog': withPlayslop([
       { id: 't1', type: 'chat', enabled: true, mode: 'contains', patterns: ['raccoon'], who: 'anyone' },
-      { id: 't2', type: 'cheer', enabled: true, minBits: 100 },
-    ],
-    'Cuck Chair Monsoon': [
+    ]),
+    'Cuck Chair Monsoon': withPlayslop([
       { id: 't3', type: 'chat', enabled: true, mode: 'exact', patterns: ['monsoon'], who: 'mods' },
       { id: 't4', type: 'raid', enabled: true, minViewers: 5 },
-    ],
-    'Pixel Cat Pounce': [
+    ]),
+    'Pixel Cat Pounce': withPlayslop([
       { id: 't5', type: 'firstchat', enabled: true, mode: 'contains', patterns: ['meow'], who: 'anyone' },
-    ],
-    'Spiky Pine Scam Hour': [
-      { id: 't6', type: 'chat', enabled: false, mode: 'wildcard', patterns: ['scam*'], who: 'anyone' },
-    ],
-    'Tomato Tribunal': [
+    ]),
+    'Spiky Pine Scam Hour': withPlayslop([
+      { id: 't6', type: 'chat', enabled: false, mode: 'starts', patterns: ['scam'], who: 'anyone' },
+    ]),
+    'Tomato Tribunal': withPlayslop([
       { id: 't7', type: 'redemption', enabled: true, rewardId: null },
-    ],
-    'Got Milk Bandit': [
-      { id: 't8', type: 'sub', enabled: true, tier: 0 },
+    ]),
+    'Got Milk Bandit': withPlayslop([
+      { id: 't8', type: 'subgift', enabled: true, tiers: { 1: true, 2: true, 3: true } },
       { id: 't9', type: 'follow', enabled: true },
-    ],
+    ]),
   };
   const trigDetail = (t) => {
+    if (t.type === 'playslop') return `makes this slop eligible for the !${document.getElementById('play-prefix').value.trim() || 'slop'} command`;
     if (t.type === 'chat' || t.type === 'firstchat') {
       const pats = (t.patterns || []).map((p) => `"${p}"`).join(', ') || 'no patterns';
       return `${t.mode} · ${pats} · ${WHO_LABELS[t.who] || 'anyone'}`;
     }
     if (t.type === 'raid') return `min ${t.minViewers ?? 0} viewers`;
     if (t.type === 'cheer') return `min ${t.minBits ?? 0} bits`;
-    if (t.type === 'resub') return `min ${t.minMonths ?? 0} months`;
+    if (t.type === 'resub') return `min ${t.minMonths ?? 0} months · ${tierText(t)}`;
+    if (t.type === 'subgift') return tierText(t);
     if (t.type === 'sub') return t.tier ? `tier ${t.tier}` : 'any tier';
     if (t.type === 'redemption') return t.rewardId ? 'specific reward' : 'any reward';
     return 'any time';
   };
-  const trigLabel = (t) => (TRIGGER_TYPES.find(([k]) => k === t.type) || [t.type, t.type])[1];
+  const tierText = (t) => {
+    const on = [1, 2, 3].filter((n) => t.tiers?.[n]);
+    return on.length === 3 ? 'tiers 1-3' : (on.map((n) => 'tier ' + n).join(', ') || 'no tiers');
+  };
+  const trigLabel = (t) => {
+    if (t.type === 'playslop') return `!${document.getElementById('play-prefix').value.trim() || 'slop'} (playback command)`;
+    return (TRIGGER_TYPES.find(([k]) => k === t.type) || [t.type, t.type])[1];
+  };
   const newTrigger = (type) => {
     const base = { id: 't' + Math.random().toString(36).slice(2, 8), type, enabled: true };
     if (type === 'chat' || type === 'firstchat') return { ...base, mode: 'contains', patterns: ['pog'], who: 'anyone' };
     if (type === 'raid') return { ...base, minViewers: 0 };
-    if (type === 'cheer') return { ...base, minBits: 0 };
+    if (type === 'resub') return { ...base, minMonths: 0, tiers: { 1: true, 2: true, 3: true } };
+    if (type === 'subgift') return { ...base, tiers: { 1: true, 2: true, 3: true } };
     if (type === 'sub') return { ...base, tier: 0 };
-    if (type === 'resub') return { ...base, minMonths: 0 };
     if (type === 'redemption') return { ...base, rewardId: null };
     return base;
   };
-  // does the chat line trip this chat trigger? (the monolith's matcher)
+  // does the chat line trip this chat trigger? (the monolith's matcher,
+  // reduced to the four supported modes)
   function lineMatches(t, line) {
     if (t.type !== 'chat' && t.type !== 'firstchat') return false;
     const L = t.caseSensitive ? line : line.toLowerCase();
@@ -708,13 +742,9 @@
       const pat = t.caseSensitive ? p : p.toLowerCase();
       const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       switch (t.mode) {
-        case 'exact': return L === pat;
         case 'starts': return L.startsWith(pat);
         case 'ends': return L.endsWith(pat);
         case 'word': return new RegExp(`\\b${esc(pat)}\\b`).test(L);
-        case 'wildcard': return new RegExp(pat.split('*').map(esc).join('.*')).test(L);
-        case 'regex':
-          try { return new RegExp(p, t.caseSensitive ? '' : 'i').test(line); } catch (_) { return false; }
         default: return L.includes(pat);
       }
     });
@@ -723,7 +753,7 @@
   function openSlopSettings(title) {
     const slop = PLACEHOLDER_SLOPS.find((s) => s.title === title);
     if (!slop) return;
-    const list = (TRIGGERS[title] || []).map((t) => ({ ...t }));
+    const list = (TRIGGERS[title] || []).map((t) => ({ ...t, tiers: t.tiers ? { ...t.tiers } : undefined }));
 
     const backdrop = document.createElement('div');
     backdrop.className = 'confirm-backdrop';
@@ -736,6 +766,12 @@
         <div class="spt-stage">
           <span class="scene-title">${title}</span>
           <button class="play" title="preview this slop"><span>▶</span></button>
+        </div>
+        <div class="spt-enabled card set-card">
+          <div class="set-row">
+            <div class="lab"><b>Slop enabled</b><span>a disabled slop cannot be triggered and won't appear in the !slop search</span></div>
+            <div class="set-ctl"><input type="checkbox" data-slop-enabled class="spt-check" ${slop.enabled !== false ? 'checked' : ''}></div>
+          </div>
         </div>
         <div class="spt-list"></div>
         <div class="spt-add">
@@ -756,6 +792,7 @@
     document.body.appendChild(backdrop);
     const modal = backdrop.querySelector('.slop-modal');
     const listBox = modal.querySelector('.spt-list');
+    const enabledBox = modal.querySelector('[data-slop-enabled]');
 
     function paint() {
       listBox.innerHTML = '';
@@ -767,24 +804,86 @@
         const row = document.createElement('div');
         row.className = 'spt-row' + (t.enabled ? '' : ' off');
         row.dataset.id = t.id;
+        const removable = t.type !== 'playslop';
         row.innerHTML = `
-          <div class="det"><b>${trigLabel(t)}</b><span>${trigDetail(t)}</span></div>
+          <div class="det"><b>${trigLabel(t)}</b><span data-det></span></div>
           <button class="toggle ${t.enabled ? 'on' : ''}" title="enable/disable"></button>
-          <button class="rm" title="Remove this trigger">✕</button>`;
+          ${removable ? '<button class="rm" title="Remove this trigger">✕</button>' : ''}`;
+        const det = row.querySelector('[data-det]');
+        function paintDetail() {
+          det.textContent = trigDetail(t);
+          // type-specific editors under the detail line
+          det.parentElement.querySelectorAll('.spt-edit').forEach((n) => n.remove());
+          const edit = document.createElement('div');
+          edit.className = 'spt-edit';
+          if (t.type === 'chat' || t.type === 'firstchat') {
+            edit.innerHTML = `
+              <select class="set-input" data-mode>${CHAT_MODES.map(([v, l]) => `<option value="${v}"${t.mode === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+              <input class="set-input" data-patterns value="${(t.patterns || []).join(', ')}" placeholder='chat line — comma separated' spellcheck="false">
+              <select class="set-input" data-who>
+                ${Object.entries(WHO_LABELS).map(([v, l]) => `<option value="${v}"${(t.who || 'anyone') === v ? ' selected' : ''}>${l}</option>`).join('')}
+              </select>`;
+            edit.querySelector('[data-mode]').addEventListener('change', (e) => { t.mode = e.target.value; paintDetail(); });
+            edit.querySelector('[data-patterns]').addEventListener('input', (e) => {
+              t.patterns = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+              paintRowMeta(row, t);
+            });
+            edit.querySelector('[data-who]').addEventListener('change', (e) => { t.who = e.target.value; paintRowMeta(row, t); });
+          } else if (t.type === 'raid') {
+            edit.innerHTML = `<label class="spt-kv">min viewers <input class="set-input num" data-raid-min type="number" min="0" value="${t.minViewers ?? 0}"></label>`;
+            edit.querySelector('[data-raid-min]').addEventListener('input', (e) => { t.minViewers = Math.max(0, Number(e.target.value) || 0); paintRowMeta(row, t); });
+          } else if (t.type === 'subgift' || t.type === 'resub') {
+            edit.innerHTML = [1, 2, 3].map((n) => `
+              <label class="spt-tier"><input type="checkbox" class="spt-check" data-tier="${n}" ${(t.tiers?.[n]) ? 'checked' : ''}> tier ${n}</label>`).join('');
+            edit.querySelectorAll('[data-tier]').forEach((c) => c.addEventListener('change', () => {
+              t.tiers = t.tiers || {};
+              t.tiers[c.dataset.tier] = c.checked;
+              paintRowMeta(row, t);
+            }));
+            if (t.type === 'resub') {
+              const months = document.createElement('label');
+              months.className = 'spt-kv';
+              months.innerHTML = `min months <input class="set-input num" data-months type="number" min="0" value="${t.minMonths ?? 0}">`;
+              months.querySelector('[data-months]').addEventListener('input', (e) => { t.minMonths = Math.max(0, Number(e.target.value) || 0); paintRowMeta(row, t); });
+              edit.appendChild(months);
+            }
+          } else if (t.type === 'sub') {
+            edit.innerHTML = `
+              <select class="set-input" data-sub-tier>
+                <option value="0"${!t.tier ? ' selected' : ''}>any tier</option>
+                <option value="1"${t.tier === 1 ? ' selected' : ''}>tier 1</option>
+                <option value="2"${t.tier === 2 ? ' selected' : ''}>tier 2</option>
+                <option value="3"${t.tier === 3 ? ' selected' : ''}>tier 3</option>
+              </select>`;
+            edit.querySelector('[data-sub-tier]').addEventListener('change', (e) => { t.tier = Number(e.target.value); paintRowMeta(row, t); });
+          }
+          if (edit.childNodes.length) det.parentElement.appendChild(edit);
+        }
+        function paintRowMeta(row, t) {
+          det.textContent = trigDetail(t);
+        }
+        paintDetail();
         row.querySelector('.toggle').addEventListener('click', (e) => {
           t.enabled = !t.enabled;
           e.target.classList.toggle('on', t.enabled);
           row.classList.toggle('off', !t.enabled);
         });
-        row.querySelector('.rm').addEventListener('click', () => {
+        const rm = row.querySelector('.rm');
+        if (rm) rm.addEventListener('click', () => {
           list.splice(list.indexOf(t), 1);
           paint();
         });
         listBox.appendChild(row);
       }
+      // the whole list goes inert when the slop itself is disabled
+      listBox.classList.toggle('disabled-list', enabledBox && !enabledBox.checked);
     }
     paint();
 
+    enabledBox.addEventListener('change', () => {
+      slop.enabled = enabledBox.checked;
+      listBox.classList.toggle('disabled-list', !enabledBox.checked);
+    });
     modal.querySelector('[data-add]').addEventListener('click', () => {
       list.push(newTrigger(modal.querySelector('[data-add-type]').value));
       paint();
@@ -793,14 +892,18 @@
       const line = e.target.value;
       for (const row of listBox.querySelectorAll('.spt-row[data-id]')) {
         const t = list.find((x) => x.id === row.dataset.id);
-        row.classList.toggle('matched', Boolean(t && line && lineMatches(t, line)));
+        row.classList.toggle('matched', Boolean(t && line && enabledBox.checked && lineMatches(t, line)));
       }
     });
     modal.querySelector('.play').addEventListener('click', () => {
       modal.querySelector('.scene-title').textContent = `▶ previewing “${title}”`;
     });
 
-    const done = (save) => { backdrop.remove(); };
+    const done = (save) => {
+      if (save) slop.enabled = enabledBox.checked;
+      backdrop.remove();
+      renderSlops();
+    };
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) return done(false);
       const b = e.target.closest('[data-x]');
