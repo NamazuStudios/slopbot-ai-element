@@ -218,9 +218,15 @@
   .spt-row .spt-edit select { width: auto; min-width: 118px; }
   .spt-row .spt-edit input[data-patterns] { flex: 1; min-width: 160px; }
   .spt-row .spt-edit .spt-kv { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .8rem; }
-  .spt-row .spt-edit .spt-tier { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: .25rem .7rem; cursor: pointer; }
-  .spt-row .spt-edit .spt-tier:has(input:checked) { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .14); }
-  .spt-list.disabled-list { opacity: .5; pointer-events: none; }
+  .spt-row .spt-edit .spt-tier {
+    display: inline-flex; align-items: center; gap: .35rem;
+    color: var(--muted); font-size: .8rem; font-weight: 600;
+    border: 1px solid var(--line); border-radius: 999px; padding: .25rem .7rem;
+    background: transparent; cursor: pointer; font-family: inherit;
+  }
+  .spt-row .spt-edit .spt-tier:hover { color: #fff; }
+  .spt-row .spt-edit .spt-tier.on { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .14); }
+  .spt-list.disabled-list { opacity: .5; }
   .slop-card.is-disabled { opacity: .55; }
   .pill.disabled { background: rgba(154, 163, 208, .15); color: var(--muted); }
 </style>
@@ -674,7 +680,7 @@
     ['sub', 'new sub'], ['resub', 'resub'], ['subgift', 'sub gift'],
     ['raid', 'raid'], ['redemption', 'redemption'],
   ];
-  const WHO_LABELS = { anyone: 'anyone', mods: 'mods+streamer', broadcaster: 'streamer only' };
+  const WHO_LABELS = { anyone: 'anyone', vips: 'VIPs', mods: 'mods+streamer', broadcaster: 'streamer only' };
   // `playslop` is the !{playback command} trigger — every slop carries one,
   // enabled by default; it is what makes the slop eligible for !slop <name>.
   const playslopTrigger = () => ({ id: 'ps-' + Math.random().toString(36).slice(2, 6), type: 'playslop', enabled: true });
@@ -694,7 +700,7 @@
       { id: 't6', type: 'chat', enabled: false, mode: 'starts', patterns: ['scam'], who: 'anyone' },
     ]),
     'Tomato Tribunal': withPlayslop([
-      { id: 't7', type: 'redemption', enabled: true, rewardId: null },
+      { id: 't7', type: 'redemption', enabled: true, reward: '' },
     ]),
     'Got Milk Bandit': withPlayslop([
       { id: 't8', type: 'subgift', enabled: true, tiers: { 1: true, 2: true, 3: true } },
@@ -711,8 +717,11 @@
     if (t.type === 'cheer') return `min ${t.minBits ?? 0} bits`;
     if (t.type === 'resub') return `min ${t.minMonths ?? 0} months · ${tierText(t)}`;
     if (t.type === 'subgift') return tierText(t);
-    if (t.type === 'sub') return t.tier ? `tier ${t.tier}` : 'any tier';
-    if (t.type === 'redemption') return t.rewardId ? 'specific reward' : 'any reward';
+    if (t.type === 'sub') {
+      const on = t.tiers && [1, 2, 3].filter((n) => t.tiers[n]);
+      return on && on.length ? tierText(t) : 'any tier';
+    }
+    if (t.type === 'redemption') return t.reward ? `reward: "${t.reward}"` : 'any reward';
     return 'any time';
   };
   const tierText = (t) => {
@@ -729,8 +738,8 @@
     if (type === 'raid') return { ...base, minViewers: 0 };
     if (type === 'resub') return { ...base, minMonths: 0, tiers: { 1: true, 2: true, 3: true } };
     if (type === 'subgift') return { ...base, tiers: { 1: true, 2: true, 3: true } };
-    if (type === 'sub') return { ...base, tier: 0 };
-    if (type === 'redemption') return { ...base, rewardId: null };
+    if (type === 'sub') return { ...base, tiers: { 1: true, 2: true, 3: true } };
+    if (type === 'redemption') return { ...base, reward: '' };
     return base;
   };
   // does the chat line trip this chat trigger? (the monolith's matcher,
@@ -832,12 +841,13 @@
           } else if (t.type === 'raid') {
             edit.innerHTML = `<label class="spt-kv">min viewers <input class="set-input num" data-raid-min type="number" min="0" value="${t.minViewers ?? 0}"></label>`;
             edit.querySelector('[data-raid-min]').addEventListener('input', (e) => { t.minViewers = Math.max(0, Number(e.target.value) || 0); paintRowMeta(row, t); });
-          } else if (t.type === 'subgift' || t.type === 'resub') {
+          } else if (t.type === 'subgift' || t.type === 'resub' || t.type === 'sub') {
             edit.innerHTML = [1, 2, 3].map((n) => `
-              <label class="spt-tier"><input type="checkbox" class="spt-check" data-tier="${n}" ${(t.tiers?.[n]) ? 'checked' : ''}> tier ${n}</label>`).join('');
-            edit.querySelectorAll('[data-tier]').forEach((c) => c.addEventListener('change', () => {
-              t.tiers = t.tiers || {};
-              t.tiers[c.dataset.tier] = c.checked;
+              <button type="button" class="spt-tier${t.tiers?.[n] ? ' on' : ''}" data-tier="${n}">tier ${n}</button>`).join('');
+            edit.querySelectorAll('[data-tier]').forEach((c) => c.addEventListener('click', () => {
+              t.tiers = t.tiers || { 1: false, 2: false, 3: false };
+              t.tiers[c.dataset.tier] = !t.tiers[c.dataset.tier];
+              c.classList.toggle('on', t.tiers[c.dataset.tier]);
               paintRowMeta(row, t);
             }));
             if (t.type === 'resub') {
@@ -847,15 +857,9 @@
               months.querySelector('[data-months]').addEventListener('input', (e) => { t.minMonths = Math.max(0, Number(e.target.value) || 0); paintRowMeta(row, t); });
               edit.appendChild(months);
             }
-          } else if (t.type === 'sub') {
-            edit.innerHTML = `
-              <select class="set-input" data-sub-tier>
-                <option value="0"${!t.tier ? ' selected' : ''}>any tier</option>
-                <option value="1"${t.tier === 1 ? ' selected' : ''}>tier 1</option>
-                <option value="2"${t.tier === 2 ? ' selected' : ''}>tier 2</option>
-                <option value="3"${t.tier === 3 ? ' selected' : ''}>tier 3</option>
-              </select>`;
-            edit.querySelector('[data-sub-tier]').addEventListener('change', (e) => { t.tier = Number(e.target.value); paintRowMeta(row, t); });
+          } else if (t.type === 'redemption') {
+            edit.innerHTML = `<input class="set-input" data-reward value="${t.reward || ''}" placeholder="reward name — blank = any reward" spellcheck="false">`;
+            edit.querySelector('[data-reward]').addEventListener('input', (e) => { t.reward = e.target.value.trim(); paintRowMeta(row, t); });
           }
           if (edit.childNodes.length) det.parentElement.appendChild(edit);
         }
@@ -875,14 +879,13 @@
         });
         listBox.appendChild(row);
       }
-      // the whole list goes inert when the slop itself is disabled
-      listBox.classList.toggle('disabled-list', enabledBox && !enabledBox.checked);
+      // triggers stay fully editable while the slop is disabled — the
+      // checkbox only governs triggerability and !slop search visibility
     }
     paint();
 
     enabledBox.addEventListener('change', () => {
       slop.enabled = enabledBox.checked;
-      listBox.classList.toggle('disabled-list', !enabledBox.checked);
     });
     modal.querySelector('[data-add]').addEventListener('click', () => {
       list.push(newTrigger(modal.querySelector('[data-add-type]').value));
@@ -892,7 +895,7 @@
       const line = e.target.value;
       for (const row of listBox.querySelectorAll('.spt-row[data-id]')) {
         const t = list.find((x) => x.id === row.dataset.id);
-        row.classList.toggle('matched', Boolean(t && line && enabledBox.checked && lineMatches(t, line)));
+        row.classList.toggle('matched', Boolean(t && line && lineMatches(t, line)));
       }
     });
     modal.querySelector('.play').addEventListener('click', () => {
