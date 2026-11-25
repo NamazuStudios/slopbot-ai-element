@@ -73,6 +73,14 @@
   }
   .slop-card .glass .tag { font-weight: 800; letter-spacing: .12em; color: var(--pink-soft); font-size: .8rem; }
   .slop-card .glass em { color: var(--muted); font-size: .72rem; font-style: normal; }
+  .slop-card .glass.asking { border-color: var(--pink); background: rgba(10, 15, 44, .65); }
+  .slop-card .glass .ask { display: flex; gap: .5rem; }
+  .slop-card .glass .ask b {
+    cursor: pointer; padding: .25rem .95rem; border: 1px solid var(--line);
+    border-radius: 999px; font-weight: 700; font-size: .8rem; color: var(--muted);
+  }
+  .slop-card .glass .ask b:hover { color: #fff; }
+  .slop-card .glass .ask [data-yes] { color: #fff; border-color: var(--pink); background: rgba(255, 0, 153, .3); }
   .slop-card h4 { margin: 0 0 .3rem; font-size: 1rem; }
   .slop-card .by { color: var(--muted); font-size: .8rem; margin-bottom: .6rem; }
   .slop-card .row { display: flex; align-items: center; justify-content: space-between; }
@@ -287,9 +295,10 @@
           <input type="checkbox" id="nsfw-show" class="spt-check"> Show NSFW
         </label>
         <div class="sort-group" id="slop-sort">
-        <span class="sort-opt" data-sort="oldest">Oldest</span>
-        <span class="sort-opt active" data-sort="newest">Newest</span>
-        <span class="sort-opt" data-sort="az">A-Z</span>
+          <span class="sort-opt" data-sort="oldest">Oldest</span>
+          <span class="sort-opt active" data-sort="newest">Newest</span>
+          <span class="sort-opt" data-sort="az">A-Z</span>
+        </div>
       </div>
     </div>
     <div class="slops-grid" id="slops-grid"></div>
@@ -728,8 +737,24 @@
   grid.addEventListener('click', async (e) => {
     const glass = e.target.closest('.glass');
     if (glass) {
-      const yes = await window.slopConfirm('This slop is NSFW', `Reveal "${glass.dataset.title}"?`, 'Reveal');
-      if (yes) { window.__nsfwRevealed.add(glass.dataset.title); renderSlops(); }
+      // the quick inline "sure?" — no modal. First click asks (auto-reverts
+      // after a moment); yes reveals this card; no or re-click reverts.
+      const yes = e.target.closest('[data-yes]');
+      const no = e.target.closest('[data-no]');
+      if (yes) {
+        clearTimeout(glass._t);
+        window.__nsfwRevealed.add(glass.dataset.title);
+        renderSlops();
+        return;
+      }
+      if (no || glass.classList.contains('asking')) {
+        clearTimeout(glass._t);
+        renderSlops();
+        return;
+      }
+      glass.classList.add('asking');
+      glass.innerHTML = '<span class="tag">sure?</span><span class="ask"><b data-yes>yes</b><b data-no>no</b></span>';
+      glass._t = setTimeout(renderSlops, 3000);
       return;
     }
     const gear = e.target.closest('[data-gear]');
