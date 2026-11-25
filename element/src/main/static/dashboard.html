@@ -121,6 +121,13 @@
   .cmd-input > b { color: var(--pink-soft); font-size: 1.05rem; padding-right: .15rem; }
   .cmd-input input { width: 130px; }
   .cmd-input.off { opacity: .4; }
+  .cmd-block { border-top: 1px solid var(--line); margin-top: .75rem; padding-top: .75rem; }
+  .cmd-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .cmd-head .lab b { display: block; font-size: .95rem; }
+  .cmd-head .lab span { color: var(--muted); font-size: .82rem; }
+  .cmd-fields { display: flex; align-items: center; gap: .5rem; margin-top: .55rem; transition: opacity .15s; }
+  .cmd-fields select { width: 190px; }
+  .cmd-fields.off { opacity: .4; }
 
   /* cam picker */
   .cam-stage {
@@ -383,21 +390,48 @@
 
       <div class="card set-card">
         <div class="set-row">
-          <div class="lab"><b>Generate command</b><span>Chat command that starts a build for a new slop</span></div>
-          <div class="set-ctl">
+          <div class="lab"><b>Chat commands</b><span>The commands that drive the bot — each with its own permission</span></div>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-head">
+            <div class="lab"><b>Generate command</b><span>starts a build for a new slop</span></div>
             <button class="toggle on" aria-label="generate command enabled"></button>
+          </div>
+          <div class="cmd-fields">
             <div class="cmd-input"><b>!</b><input class="set-input" id="gen-prefix" value="slopbuild" spellcheck="false" autocomplete="off"></div>
+            <select class="set-input" id="gen-who">
+              <option value="anyone" selected>Anyone</option>
+              <option value="vips">VIP</option>
+              <option value="mods">Mod</option>
+              <option value="broadcaster">Streamer Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="cmd-block">
+          <div class="cmd-head">
+            <div class="lab"><b>Playback command</b><span>plays and searches your existing slops</span></div>
+            <button class="toggle on" aria-label="playback command enabled"></button>
+          </div>
+          <div class="cmd-fields">
+            <div class="cmd-input"><b>!</b><input class="set-input" id="play-prefix" value="slop" spellcheck="false" autocomplete="off"></div>
+            <select class="set-input" id="play-who">
+              <option value="anyone" selected>Anyone</option>
+              <option value="vips">VIP</option>
+              <option value="mods">Mod</option>
+              <option value="broadcaster">Streamer Only</option>
+            </select>
           </div>
         </div>
       </div>
 
       <div class="card set-card">
         <div class="set-row">
-          <div class="lab"><b>Playback command</b><span>Chat command that plays and searches your existing slops</span></div>
-          <div class="set-ctl">
-            <button class="toggle on" aria-label="playback command enabled"></button>
-            <div class="cmd-input"><b>!</b><input class="set-input" id="play-prefix" value="slop" spellcheck="false" autocomplete="off"></div>
-          </div>
+          <div class="lab"><b>Channel points</b><span>Viewers redeem a channel-point reward to generate a slop</span></div>
+          <div class="set-ctl"><button class="toggle on" id="cp-toggle" aria-label="channel points enabled"></button></div>
+        </div>
+        <div class="cmd-fields" id="cp-fields">
+          <label class="spt-kv" style="padding-left:.1rem">Reward name</label>
+          <input class="set-input" id="cp-reward" value="Make a Slop" style="flex:1" spellcheck="false" autocomplete="off">
         </div>
       </div>
 
@@ -638,17 +672,27 @@
     t.addEventListener('click', () => t.classList.toggle('on'));
   });
 
-  // the command toggles also dim + disable their prefix input when off
-  document.querySelectorAll('.cmd-input').forEach((ci) => {
-    const t = ci.closest('.set-ctl').querySelector('.toggle');
-    const sync = () => {
+  // the command toggles also dim + disable their fields when off —
+  // scoped per command block and for the channel-points reward field
+  function syncCmdFields() {
+    document.querySelectorAll('.cmd-block').forEach((cb) => {
+      const t = cb.querySelector('.toggle');
+      const ci = cb.querySelector('.cmd-input');
       const on = t.classList.contains('on');
       ci.classList.toggle('off', !on);
       ci.querySelector('input').disabled = !on;
-    };
-    t.addEventListener('click', sync); // runs after the plain flip (registration order)
-    sync();
+    });
+    const cp = document.getElementById('cp-fields');
+    if (cp) {
+      const on = document.getElementById('cp-toggle').classList.contains('on');
+      cp.classList.toggle('off', !on);
+      cp.querySelector('input').disabled = !on;
+    }
+  }
+  document.querySelectorAll('.cmd-block .toggle, #cp-toggle').forEach((t) => {
+    t.addEventListener('click', syncCmdFields); // runs after the plain flip (registration order)
   });
+  syncCmdFields();
 
   // destructive actions confirm first
   grid.addEventListener('click', async (e) => {
@@ -661,7 +705,10 @@
   });
   document.getElementById('settings-reset').addEventListener('click', async () => {
     const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');
-    if (yes) document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
+    if (yes) {
+      document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
+      syncCmdFields();
+    }
   });
 
   // ---------- per-slop settings modal: preview + triggers ----------
