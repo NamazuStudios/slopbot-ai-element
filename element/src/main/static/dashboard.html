@@ -56,6 +56,23 @@
   .sort-opt:hover { color: #fff; }
   .sort-opt.active { background: rgba(255, 0, 153, .18); color: #fff; box-shadow: 0 0 0 1px var(--pink); }
   .slops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .9rem; }
+  .slops-bar-right { display: flex; align-items: center; gap: .8rem; }
+  .nsfw-vis { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .82rem; cursor: pointer; user-select: none; }
+  .nsfw-vis:hover { color: #fff; }
+
+  /* the NSFW glass over blurred cards */
+  .slop-card { position: relative; }
+  .slop-card.nsfw .slop-inner { filter: blur(7px); pointer-events: none; }
+  .slop-card .glass {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem;
+    border-radius: 14px; cursor: pointer;
+    background: rgba(10, 15, 44, .4);
+    backdrop-filter: blur(3px);
+    border: 1px solid rgba(255, 0, 153, .35);
+  }
+  .slop-card .glass .tag { font-weight: 800; letter-spacing: .12em; color: var(--pink-soft); font-size: .8rem; }
+  .slop-card .glass em { color: var(--muted); font-size: .72rem; font-style: normal; }
   .slop-card h4 { margin: 0 0 .3rem; font-size: 1rem; }
   .slop-card .by { color: var(--muted); font-size: .8rem; margin-bottom: .6rem; }
   .slop-card .row { display: flex; align-items: center; justify-content: space-between; }
@@ -265,7 +282,11 @@
   <section class="pane active" id="pane-slops">
     <div class="slops-bar">
       <input class="set-input" id="slop-search" style="width:280px" placeholder="Search by name…" spellcheck="false" autocomplete="off">
-      <div class="sort-group" id="slop-sort">
+      <div class="slops-bar-right">
+        <label class="nsfw-vis" title="show NSFW slops without the glass">
+          <input type="checkbox" id="nsfw-show" class="spt-check"> Show NSFW
+        </label>
+        <div class="sort-group" id="slop-sort">
         <span class="sort-opt" data-sort="oldest">Oldest</span>
         <span class="sort-opt active" data-sort="newest">Newest</span>
         <span class="sort-opt" data-sort="az">A-Z</span>
@@ -541,19 +562,22 @@
   // ---------- slops (placeholder, per the look-and-feel pass) ----------
   // `added` = days ago, so the Oldest/Newest sorts are visible.
   const PLACEHOLDER_SLOPS = [
-    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2, enabled: true },
-    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9, enabled: true },
-    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4, enabled: true },
-    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14, enabled: false },
-    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1, enabled: true },
-    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6, enabled: true },
+    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2, enabled: true, nsfw: false },
+    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9, enabled: true, nsfw: true },
+    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4, enabled: true, nsfw: false },
+    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14, enabled: false, nsfw: false },
+    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1, enabled: true, nsfw: false },
+    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6, enabled: true, nsfw: true },
   ];
   const grid = document.getElementById('slops-grid');
   const search = document.getElementById('slop-search');
   const sortState = { mode: 'newest' };
+  window.__nsfwRevealed = new Set(); // per-card reveals, reset by the global toggle
 
   function renderSlops() {
     const q = (search.value || '').trim().toLowerCase();
+    const showNsfw = document.getElementById('nsfw-show').checked;
+    const revealed = window.__nsfwRevealed;
     let items = PLACEHOLDER_SLOPS.filter((s) => !q || s.title.toLowerCase().includes(q));
     items = [...items].sort({
       oldest: (a, b) => a.added - b.added,
@@ -573,17 +597,23 @@
     for (const s of items) {
       const el = document.createElement('div');
       const disabled = s.enabled === false;
-      el.className = 'card slop-card' + (disabled ? ' is-disabled' : '');
-      el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
-        <div class="row"><span class="pill ${disabled ? 'disabled' : s.state}">${disabled ? 'disabled' : s.state}</span>
+      const blurred = s.nsfw && !showNsfw && !revealed.has(s.title);
+      el.className = 'card slop-card' + (disabled ? ' is-disabled' : '') + (blurred ? ' nsfw' : '');
+      el.innerHTML = `<div class="slop-inner"><h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
+        <div class="row"><span class="pill ${disabled ? 'disabled' : s.state}">${disabled ? 'disabled' : s.state}</span>${s.nsfw ? '<span class="pill rejected">nsfw</span>' : ''}
           <span style="display:flex; gap:.4rem;">
             <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.title}" title="Preview + triggers">⚙</button>
             <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
-          </span></div>`;
+          </span></div></div>
+        ${blurred ? `<div class="glass" data-title="${s.title}"><span class="tag">🔒 NSFW</span><em>click to reveal</em></div>` : ''}`;
       grid.appendChild(el);
     }
   }
   search.addEventListener('input', renderSlops);
+  document.getElementById('nsfw-show').addEventListener('change', () => {
+    window.__nsfwRevealed.clear(); // the global toggle resets every card's reveal state
+    renderSlops();
+  });
   document.querySelectorAll('#slop-sort .sort-opt').forEach((o) => {
     o.addEventListener('click', () => {
       document.querySelectorAll('#slop-sort .sort-opt').forEach((x) => x.classList.remove('active'));
@@ -696,6 +726,12 @@
 
   // destructive actions confirm first
   grid.addEventListener('click', async (e) => {
+    const glass = e.target.closest('.glass');
+    if (glass) {
+      const yes = await window.slopConfirm('This slop is NSFW', `Reveal "${glass.dataset.title}"?`, 'Reveal');
+      if (yes) { window.__nsfwRevealed.add(glass.dataset.title); renderSlops(); }
+      return;
+    }
     const gear = e.target.closest('[data-gear]');
     if (gear) { openSlopSettings(gear.dataset.gear); return; }
     const del = e.target.closest('[data-del]');
