@@ -49,7 +49,12 @@
   .pane { display: none; }
   .pane.active { display: block; }
 
-  /* slops grid */
+  /* slops grid + search/sort bar */
+  .slops-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; flex-wrap: wrap; }
+  .sort-group { display: inline-flex; gap: .15rem; padding: .2rem; border: 1px solid var(--line); border-radius: 999px; background: rgba(10, 15, 44, .5); }
+  .sort-opt { padding: .3rem .95rem; border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+  .sort-opt:hover { color: #fff; }
+  .sort-opt.active { background: rgba(255, 0, 153, .18); color: #fff; box-shadow: 0 0 0 1px var(--pink); }
   .slops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .9rem; }
   .slop-card h4 { margin: 0 0 .3rem; font-size: 1rem; }
   .slop-card .by { color: var(--muted); font-size: .8rem; margin-bottom: .6rem; }
@@ -155,6 +160,56 @@
   }
   .cam-readout { display: flex; gap: .8rem; margin-top: .5rem; color: var(--muted); font-size: .78rem; font-family: ui-monospace, monospace; align-items: center; }
   .cam-readout b { color: var(--text); font-weight: 600; }
+
+  /* ---- per-slop settings modal (preview + triggers) ---- */
+  .slop-modal {
+    width: min(640px, calc(100vw - 3rem)); max-height: calc(100vh - 4rem); overflow-y: auto;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.1rem 1.2rem;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  }
+  .spt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
+  .spt-head h4 { margin: 0; font-size: 1.02rem; }
+  .spt-head .x { border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: .2rem .5rem; border-radius: 8px; }
+  .spt-head .x:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .spt-stage {
+    position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line); display: grid; place-items: center;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px),
+      radial-gradient(500px 260px at 65% 20%, #1a2150 0%, transparent 60%),
+      linear-gradient(160deg, #131a45 0%, #0a0f2c 70%);
+  }
+  .spt-stage .scene-title { font-weight: 800; letter-spacing: .18em; color: #3a4685; text-transform: uppercase; font-size: .82rem; }
+  .spt-stage .play {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: rgba(4, 7, 22, .3); border: 0; cursor: pointer;
+  }
+  .spt-stage .play span {
+    width: 62px; height: 62px; border-radius: 50%;
+    background: rgba(255, 0, 153, .85); display: grid; place-items: center;
+    font-size: 1.5rem; color: #fff;
+  }
+  .spt-stage .play:hover span { background: var(--pink); }
+  .spt-list { display: flex; flex-direction: column; gap: .4rem; margin: .8rem 0; }
+  .spt-row {
+    display: flex; align-items: center; gap: .7rem;
+    border: 1px solid var(--line); border-radius: 10px; padding: .5rem .7rem;
+    background: rgba(10, 15, 44, .5);
+  }
+  .spt-row.off { opacity: .45; }
+  .spt-row.matched { border-color: var(--pink); box-shadow: 0 0 0 1px var(--pink); }
+  .spt-row .det { flex: 1; min-width: 0; }
+  .spt-row .det b { display: block; font-size: .88rem; }
+  .spt-row .det span { color: var(--muted); font-size: .76rem; }
+  .spt-row .rm { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: .95rem; padding: .15rem .45rem; border-radius: 6px; }
+  .spt-row .rm:hover { color: #ff5c7a; background: rgba(255, 59, 92, .12); }
+  .spt-add { display: flex; gap: .5rem; margin-bottom: .8rem; }
+  .spt-add select { flex: 1; }
+  .spt-test input { width: 100%; }
+  .spt-test .lbl { color: var(--muted); font-size: .78rem; margin-bottom: .3rem; }
+  .slop-modal .btns { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
 </style>
 </head>
 <body>
@@ -182,6 +237,14 @@
 
   <!-- SLOPS -->
   <section class="pane active" id="pane-slops">
+    <div class="slops-bar">
+      <input class="set-input" id="slop-search" style="width:280px" placeholder="Search by name…" spellcheck="false" autocomplete="off">
+      <div class="sort-group" id="slop-sort">
+        <span class="sort-opt" data-sort="oldest">Oldest</span>
+        <span class="sort-opt active" data-sort="newest">Newest</span>
+        <span class="sort-opt" data-sort="az">A-Z</span>
+      </div>
+    </div>
     <div class="slops-grid" id="slops-grid"></div>
   </section>
 
@@ -423,24 +486,59 @@
 <script src="slop-confirm.js"></script>
 <script>
   // ---------- slops (placeholder, per the look-and-feel pass) ----------
+  // `added` = days ago, so the Oldest/Newest sorts are visible.
   const PLACEHOLDER_SLOPS = [
-    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12 },
-    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31 },
-    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0 },
-    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2 },
+    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2 },
+    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9 },
+    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4 },
+    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14 },
+    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1 },
+    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6 },
   ];
   const grid = document.getElementById('slops-grid');
-  for (const s of PLACEHOLDER_SLOPS) {
-    const el = document.createElement('div');
-    el.className = 'card slop-card';
-    el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
-      <div class="row"><span class="pill ${s.state}">${s.state}</span>
-        <span style="display:flex; gap:.4rem;">
-          <button class="btn ghost" style="padding:.3rem .8rem">Play</button>
-          <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
-        </span></div>`;
-    grid.appendChild(el);
+  const search = document.getElementById('slop-search');
+  const sortState = { mode: 'newest' };
+
+  function renderSlops() {
+    const q = (search.value || '').trim().toLowerCase();
+    let items = PLACEHOLDER_SLOPS.filter((s) => !q || s.title.toLowerCase().includes(q));
+    items = [...items].sort({
+      oldest: (a, b) => a.added - b.added,
+      newest: (a, b) => b.added - a.added,
+      az: (a, b) => a.title.localeCompare(b.title),
+    }[sortState.mode]);
+    grid.innerHTML = '';
+    if (!items.length) {
+      const note = document.createElement('div');
+      note.className = 'card';
+      note.style.gridColumn = '1 / -1';
+      note.style.color = 'var(--muted)';
+      note.textContent = `No slops match "${q}".`;
+      grid.appendChild(note);
+      return;
+    }
+    for (const s of items) {
+      const el = document.createElement('div');
+      el.className = 'card slop-card';
+      el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
+        <div class="row"><span class="pill ${s.state}">${s.state}</span>
+          <span style="display:flex; gap:.4rem;">
+            <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.title}" title="Preview + triggers">⚙</button>
+            <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
+          </span></div>`;
+      grid.appendChild(el);
+    }
   }
+  search.addEventListener('input', renderSlops);
+  document.querySelectorAll('#slop-sort .sort-opt').forEach((o) => {
+    o.addEventListener('click', () => {
+      document.querySelectorAll('#slop-sort .sort-opt').forEach((x) => x.classList.remove('active'));
+      o.classList.add('active');
+      sortState.mode = o.dataset.sort;
+      renderSlops();
+    });
+  });
+  renderSlops();
 
   // ---------- drawer + panes ----------
   const panes = { slops: 'Slops', workshop: 'Workshop', settings: 'Settings', account: 'Account' };
@@ -534,6 +632,8 @@
 
   // destructive actions confirm first
   grid.addEventListener('click', async (e) => {
+    const gear = e.target.closest('[data-gear]');
+    if (gear) { openSlopSettings(gear.dataset.gear); return; }
     const del = e.target.closest('[data-del]');
     if (!del) return;
     const yes = await window.slopConfirm('Delete this slop?', `"${del.dataset.del}" will be removed from your registry. This cannot be undone.`, 'Delete');
@@ -543,6 +643,170 @@
     const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');
     if (yes) document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
   });
+
+  // ---------- per-slop settings modal: preview + triggers ----------
+  // Mirrors the monolith's per-slop settings screen (deck.js "slop trigger
+  // settings"): a preview stage on top, then every trigger that can make
+  // this slop play, and a test-chat input that live-matches chat triggers.
+  const TRIGGER_TYPES = [
+    ['chat', 'chat line'], ['firstchat', 'first-time chatter'], ['follow', 'follow'],
+    ['firstfollow', 'first-time follower'], ['sub', 'new sub'], ['resub', 'resub'],
+    ['subgift', 'sub gift'], ['raid', 'raid'], ['cheer', 'cheer'], ['redemption', 'redemption'],
+  ];
+  const WHO_LABELS = { anyone: 'anyone', mods: 'mods+streamer', broadcaster: 'streamer only' };
+  const TRIGGERS = {
+    'Rubbery Hotdog': [
+      { id: 't1', type: 'chat', enabled: true, mode: 'contains', patterns: ['raccoon'], who: 'anyone' },
+      { id: 't2', type: 'cheer', enabled: true, minBits: 100 },
+    ],
+    'Cuck Chair Monsoon': [
+      { id: 't3', type: 'chat', enabled: true, mode: 'exact', patterns: ['monsoon'], who: 'mods' },
+      { id: 't4', type: 'raid', enabled: true, minViewers: 5 },
+    ],
+    'Pixel Cat Pounce': [
+      { id: 't5', type: 'firstchat', enabled: true, mode: 'contains', patterns: ['meow'], who: 'anyone' },
+    ],
+    'Spiky Pine Scam Hour': [
+      { id: 't6', type: 'chat', enabled: false, mode: 'wildcard', patterns: ['scam*'], who: 'anyone' },
+    ],
+    'Tomato Tribunal': [
+      { id: 't7', type: 'redemption', enabled: true, rewardId: null },
+    ],
+    'Got Milk Bandit': [
+      { id: 't8', type: 'sub', enabled: true, tier: 0 },
+      { id: 't9', type: 'follow', enabled: true },
+    ],
+  };
+  const trigDetail = (t) => {
+    if (t.type === 'chat' || t.type === 'firstchat') {
+      const pats = (t.patterns || []).map((p) => `"${p}"`).join(', ') || 'no patterns';
+      return `${t.mode} · ${pats} · ${WHO_LABELS[t.who] || 'anyone'}`;
+    }
+    if (t.type === 'raid') return `min ${t.minViewers ?? 0} viewers`;
+    if (t.type === 'cheer') return `min ${t.minBits ?? 0} bits`;
+    if (t.type === 'resub') return `min ${t.minMonths ?? 0} months`;
+    if (t.type === 'sub') return t.tier ? `tier ${t.tier}` : 'any tier';
+    if (t.type === 'redemption') return t.rewardId ? 'specific reward' : 'any reward';
+    return 'any time';
+  };
+  const trigLabel = (t) => (TRIGGER_TYPES.find(([k]) => k === t.type) || [t.type, t.type])[1];
+  const newTrigger = (type) => {
+    const base = { id: 't' + Math.random().toString(36).slice(2, 8), type, enabled: true };
+    if (type === 'chat' || type === 'firstchat') return { ...base, mode: 'contains', patterns: ['pog'], who: 'anyone' };
+    if (type === 'raid') return { ...base, minViewers: 0 };
+    if (type === 'cheer') return { ...base, minBits: 0 };
+    if (type === 'sub') return { ...base, tier: 0 };
+    if (type === 'resub') return { ...base, minMonths: 0 };
+    if (type === 'redemption') return { ...base, rewardId: null };
+    return base;
+  };
+  // does the chat line trip this chat trigger? (the monolith's matcher)
+  function lineMatches(t, line) {
+    if (t.type !== 'chat' && t.type !== 'firstchat') return false;
+    const L = t.caseSensitive ? line : line.toLowerCase();
+    return (t.patterns || []).some((p) => {
+      const pat = t.caseSensitive ? p : p.toLowerCase();
+      const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      switch (t.mode) {
+        case 'exact': return L === pat;
+        case 'starts': return L.startsWith(pat);
+        case 'ends': return L.endsWith(pat);
+        case 'word': return new RegExp(`\\b${esc(pat)}\\b`).test(L);
+        case 'wildcard': return new RegExp(pat.split('*').map(esc).join('.*')).test(L);
+        case 'regex':
+          try { return new RegExp(p, t.caseSensitive ? '' : 'i').test(line); } catch (_) { return false; }
+        default: return L.includes(pat);
+      }
+    });
+  }
+
+  function openSlopSettings(title) {
+    const slop = PLACEHOLDER_SLOPS.find((s) => s.title === title);
+    if (!slop) return;
+    const list = (TRIGGERS[title] || []).map((t) => ({ ...t }));
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'confirm-backdrop';
+    backdrop.innerHTML = `
+      <div class="slop-modal">
+        <div class="spt-head">
+          <h4>${title} — preview &amp; triggers</h4>
+          <button class="x" data-x="close" title="close">✕</button>
+        </div>
+        <div class="spt-stage">
+          <span class="scene-title">${title}</span>
+          <button class="play" title="preview this slop"><span>▶</span></button>
+        </div>
+        <div class="spt-list"></div>
+        <div class="spt-add">
+          <select class="set-input" data-add-type>
+            ${TRIGGER_TYPES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+          </select>
+          <button class="btn ghost" data-add>Add trigger</button>
+        </div>
+        <div class="spt-test">
+          <div class="lbl">Test a chat line — matching triggers light up</div>
+          <input class="set-input" data-test placeholder="e.g. I love raccoons" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="btns">
+          <button class="btn ghost" data-x="cancel">Cancel</button>
+          <button class="btn" data-x="save">Save triggers</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const modal = backdrop.querySelector('.slop-modal');
+    const listBox = modal.querySelector('.spt-list');
+
+    function paint() {
+      listBox.innerHTML = '';
+      if (!list.length) {
+        listBox.innerHTML = '<div class="spt-row"><div class="det"><b>No triggers</b><span>add one below — this slop never plays without one</span></div></div>';
+        return;
+      }
+      for (const t of list) {
+        const row = document.createElement('div');
+        row.className = 'spt-row' + (t.enabled ? '' : ' off');
+        row.dataset.id = t.id;
+        row.innerHTML = `
+          <div class="det"><b>${trigLabel(t)}</b><span>${trigDetail(t)}</span></div>
+          <button class="toggle ${t.enabled ? 'on' : ''}" title="enable/disable"></button>
+          <button class="rm" title="Remove this trigger">✕</button>`;
+        row.querySelector('.toggle').addEventListener('click', (e) => {
+          t.enabled = !t.enabled;
+          e.target.classList.toggle('on', t.enabled);
+          row.classList.toggle('off', !t.enabled);
+        });
+        row.querySelector('.rm').addEventListener('click', () => {
+          list.splice(list.indexOf(t), 1);
+          paint();
+        });
+        listBox.appendChild(row);
+      }
+    }
+    paint();
+
+    modal.querySelector('[data-add]').addEventListener('click', () => {
+      list.push(newTrigger(modal.querySelector('[data-add-type]').value));
+      paint();
+    });
+    modal.querySelector('.spt-test input').addEventListener('input', (e) => {
+      const line = e.target.value;
+      for (const row of listBox.querySelectorAll('.spt-row[data-id]')) {
+        const t = list.find((x) => x.id === row.dataset.id);
+        row.classList.toggle('matched', Boolean(t && line && lineMatches(t, line)));
+      }
+    });
+    modal.querySelector('.play').addEventListener('click', () => {
+      modal.querySelector('.scene-title').textContent = `▶ previewing “${title}”`;
+    });
+
+    const done = (save) => { backdrop.remove(); };
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) return done(false);
+      const b = e.target.closest('[data-x]');
+      if (b) done(b.dataset.x === 'save');
+    });
+  }
 
   // ---------- the streamer cam picker: drag to place, corner to resize (0–1) ----------
   const stage = document.getElementById('cam-stage');
