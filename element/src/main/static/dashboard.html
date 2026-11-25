@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard — SlopBot AI</title>
+<title>slopbot.gg — Dashboard</title>
 <link rel="stylesheet" href="slopbot-ui.css">
 <style>
   body { display: flex; }
@@ -59,87 +59,74 @@
     background: #0a0f2c; color: var(--text); font: 13px/1.5 ui-monospace, monospace; padding: .8rem;
   }
   label.f { display: block; margin: .8rem 0 .25rem; color: var(--muted); font-size: .85rem; }
-  input.t, select.t {
-    width: 100%; border-radius: 8px; border: 1px solid var(--line);
-    background: #0a0f2c; color: var(--text); padding: .55rem .7rem; font: inherit;
-  }
 
-  /* settings */
-  .settings { max-width: 720px; display: flex; flex-direction: column; gap: .9rem; }
-  .settings .card { padding: .9rem 1.1rem; }
-  .settings .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .settings .row .lab b { display: block; }
-  .settings .row .lab span { color: var(--muted); font-size: .82rem; }
+  /* =========================================================
+     Settings — one uniform card grid. Every setting is a card;
+     every card is the same padding, the same grid (label left,
+     control right), the same vertical rhythm. Expandable cards
+     open a body region INSIDE the card, so the rows never shift.
+     ========================================================= */
+  .settings { max-width: 760px; display: flex; flex-direction: column; gap: .75rem; }
+  .set-card { padding: .85rem 1.1rem; }
+  .set-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
+  .set-row .lab b { display: block; font-size: .95rem; }
+  .set-row .lab span { color: var(--muted); font-size: .82rem; }
+  .set-ctl { display: flex; align-items: center; gap: .7rem; min-height: 38px; justify-content: flex-end; }
+  select.set-input, input.set-input {
+    border-radius: 8px; border: 1px solid var(--line);
+    background: #0a0f2c; color: var(--text); padding: .45rem .7rem; font: inherit;
+    height: 38px;
+  }
+  select.set-input { width: 240px; }
+  input.set-input.num { width: 88px; text-align: right; }
+  .set-body { display: none; margin-top: .85rem; padding-top: .85rem; border-top: 1px solid var(--line); }
+  .set-card.expanded .set-body { display: block; }
+  .set-body textarea { min-height: 88px; }
+  .set-body .hint { color: #6d76a8; font-size: .78rem; margin-top: .5rem; }
+
+  /* toggle */
   .toggle { width: 44px; height: 24px; border-radius: 999px; background: var(--line); position: relative; border: 0; cursor: pointer; flex: none; }
   .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
   .toggle.on { background: var(--pink); }
   .toggle.on::after { left: 23px; }
 
-  /* expandable advanced areas */
-  .expand { display: none; margin-top: .9rem; }
-  .card.expanded .expand { display: block; }
-  .expand-label {
+  /* the expander chip — lights up pink when its card is expanded */
+  .expander {
     display: inline-flex; align-items: center; gap: .45rem;
-    color: var(--muted); font-size: .8rem; cursor: pointer; user-select: none;
-    border: 1px solid var(--line); border-radius: 8px; padding: .3rem .7rem;
+    color: var(--muted); font-size: .8rem; font-weight: 600; cursor: pointer; user-select: none;
+    border: 1px solid var(--line); border-radius: 8px; padding: .3rem .75rem;
+    transition: all .12s;
   }
-  .expand-label:hover { color: #fff; border-color: var(--pink); }
-  .expand textarea { min-height: 90px; margin-top: .6rem; }
+  .expander:hover { color: #fff; }
+  .set-card.expanded .expander {
+    border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .18);
+  }
 
-  /* build-trigger options */
-  .trigger-opts { display: flex; flex-direction: column; gap: .55rem; margin-top: .7rem; }
-  .trigger-opt {
-    display: flex; flex-direction: column; align-items: stretch; gap: .4rem;
-    border: 1px solid var(--line); border-radius: 10px; padding: .65rem .8rem;
-    background: rgba(10, 15, 44, .5);
-  }
-  .trigger-opt .t-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .expand-label { transition: all .12s; }
-  .card.expanded .expand-label {
-    border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .16);
-  }
-  .trigger-opt .lab b { display: block; font-size: .9rem; }
-  .trigger-opt .lab span { color: var(--muted); font-size: .78rem; }
-  .who-opts { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .6rem; }
-  .who-opt {
-    border: 1px solid var(--line); border-radius: 999px; padding: .3rem .85rem;
-    font-size: .8rem; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none;
-  }
-  .who-opt.on { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .18); }
-  .who-row { display: none; margin-top: .6rem; }
-  .trigger-opt.expanded .who-row { display: block; }
-  .who-row .who-label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .4rem; }
+  /* chat command rows — identical for both commands */
+  .cmd-input { display: flex; align-items: center; gap: .1rem; }
+  .cmd-input > b { color: var(--pink-soft); font-size: 1.05rem; padding-right: .15rem; }
+  .cmd-input input { width: 130px; }
 
   /* cam picker */
-  .cam-wrap { margin-top: .8rem; }
   .cam-stage {
     position: relative; width: 100%; aspect-ratio: 16 / 9;
     border-radius: 12px; overflow: hidden;
     border: 1px solid var(--line);
-    background:
-      repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px),
-      radial-gradient(600px 300px at 30% 20%, #1a2150 0%, transparent 60%),
-      linear-gradient(160deg, #131a45 0%, #0a0f2c 70%);
+    background: #0a0f2c;
     user-select: none; touch-action: none;
-  }
-  .cam-stage .live {
-    position: absolute; top: 10px; left: 10px;
-    background: rgba(7, 11, 34, .8); border: 1px solid var(--line);
-    border-radius: 6px; padding: .15rem .5rem;
-    font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: #ff5c5c;
   }
   .cam-stage iframe {
     position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
     pointer-events: none; /* the drag surface owns the pointer; the stream plays muted beneath */
   }
-  .cam-stage .scene { position: absolute; inset: 0; display: grid; place-items: center; color: #2c376f; font-weight: 800; letter-spacing: .2em; font-size: .9rem; }
-  .prefix-row { display: flex; align-items: center; gap: .4rem; margin-top: .55rem; }
-  .prefix-row > b { color: var(--pink-soft); font-size: 1rem; }
-  .prefix-input { width: 90px; padding: .3rem .5rem !important; }
-  .prefix-hint { color: var(--muted); font-size: .78rem; }
-  .prefix-hint b { color: var(--text); }
+  .cam-stage .live {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    background: rgba(7, 11, 34, .8); border: 1px solid var(--line);
+    border-radius: 6px; padding: .15rem .5rem;
+    font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: #ff5c5c;
+  }
   .cam-rect {
-    position: absolute;
+    position: absolute; z-index: 3;
     border: 2px dashed var(--pink);
     background: rgba(255, 0, 153, .12);
     cursor: move;
@@ -156,13 +143,13 @@
     background: var(--pink); border: 2px solid #fff;
     cursor: nwse-resize;
   }
-  .cam-readout { display: flex; gap: .8rem; margin-top: .5rem; color: var(--muted); font-size: .78rem; font-family: ui-monospace, monospace; }
+  .cam-readout { display: flex; gap: .8rem; margin-top: .5rem; color: var(--muted); font-size: .78rem; font-family: ui-monospace, monospace; align-items: center; }
   .cam-readout b { color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
 <aside id="drawer">
-  <div class="logo">SlopBot <em>AI</em><span> · dashboard</span></div>
+  <div class="logo">slopbot<em>.gg</em><span> · dashboard</span></div>
   <div class="drawer-head">Creator tools</div>
   <nav>
     <button data-pane="slops" class="active"><span class="ic">🎴</span><span class="navlabel">Slops</span></button>
@@ -194,7 +181,7 @@
       <div class="card">
         <h3>Author a slop</h3>
         <label class="f">Prompt</label>
-        <input class="t" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
+        <input class="set-input" style="width:100%" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
         <label class="f">Agent brief (generated from your prompt — editable)</label>
         <textarea>export const meta = {
   title: '…',
@@ -218,98 +205,97 @@ export function frame(ctx, t, dt) {}</textarea>
   <section class="pane" id="pane-settings">
     <div class="settings">
 
-      <div class="card row">
-        <div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div>
-        <button class="toggle on"></button>
-      </div>
-
-      <div class="card row">
-        <div class="lab"><b>Default generation model</b><span>The model every build runs on (Hyper-metered)</span></div>
-        <select class="t" style="width:280px" id="model-select">
-          <option value="">hyper / gemini-4-neon (agent default)</option>
-          <option value="gemini-4-neon" selected>hyper / gemini-4-neon</option>
-          <option value="gemini-3.8-flash">hyper / gemini-3.8-flash</option>
-          <option value="gemini-3.7-flash">hyper / gemini-3.7-flash</option>
-          <option value="claude-haiku-4-5">hyper / claude-haiku-4-5</option>
-          <option value="grok-4.7">hyper / grok-4.7</option>
-          <option value="grok-build-0.1">hyper / grok-build-0.1</option>
-          <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
-          <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
-          <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
-          <option value="gpt-5.4-mini">hyper / gpt-5.4-mini</option>
-          <option value="prism">hyper / prism</option>
-          <option value="prism-core">hyper / prism-core</option>
-          <option value="prism-flash">hyper / prism-flash</option>
-          <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
-          <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
-
-      </div>
-
-      <div class="card">
-        <div class="row">
-          <div class="lab"><b>Chat commands</b><span>The chat commands that drive the bot — the <b style="color:var(--text)">!</b> prefix is fixed</span></div>
-        </div>
-        <div class="trigger-opts">
-          <div class="trigger-opt expanded">
-            <div class="t-top">
-              <div class="lab"><b>Generate command</b><span>Starts a build for a new slop</span></div>
-              <button class="toggle on"></button>
-            </div>
-            <div class="prefix-row">!<input class="t prefix-input" id="gen-prefix" value="slopbuild" spellcheck="false"></div>
-          </div>
-          <div class="trigger-opt expanded">
-            <div class="t-top">
-              <div class="lab"><b>Playback command</b><span>Plays and searches your existing slops</span></div>
-              <button class="toggle on"></button>
-            </div>
-            <div class="prefix-row">!<input class="t prefix-input" id="play-prefix" value="slop" spellcheck="false"></div>
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Default generation model</b><span>The Hyper model every build runs on</span></div>
+          <div class="set-ctl">
+            <select class="set-input" id="model-select">
+              <option value="prism" selected>hyper / prism</option>
+              <option value="prism-flash">hyper / prism-flash</option>
+              <option value="prism-core">hyper / prism-core</option>
+              <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
+              <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
+              <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
+              <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
+              <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <div class="card" id="moderation-card">
-        <div class="row">
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Generate command</b><span>Chat command that starts a build for a new slop</span></div>
+          <div class="set-ctl cmd-input"><b>!</b><input class="set-input" id="gen-prefix" value="slopbuild" spellcheck="false" autocomplete="off"></div>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Playback command</b><span>Chat command that plays and searches your existing slops</span></div>
+          <div class="set-ctl cmd-input"><b>!</b><input class="set-input" id="play-prefix" value="slop" spellcheck="false" autocomplete="off"></div>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-row">
           <div class="lab"><b>Moderation level</b><span id="mod-note">Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.</span></div>
-          <div style="display:flex; align-items:center; gap:.8rem;">
-            <select class="t" style="width:170px" id="mod-level">
+          <div class="set-ctl">
+            <select class="set-input" id="mod-level" style="width:170px">
               <option value="kid">Kid Friendly</option>
               <option value="teen" selected>Teen</option>
               <option value="adult">Adult</option>
               <option value="anything">Anything Goes</option>
             </select>
-            <label class="expand-label" id="mod-advanced-toggle">⚙︎ advanced</label>
+            <span class="expander" data-target="mod-advanced">⚙︎ advanced</span>
           </div>
         </div>
-        <div class="expand" id="mod-advanced">
+        <div class="set-body" id="mod-advanced">
           <label class="f">Additional moderation instructions</label>
-          <textarea placeholder="e.g. no alcohol references, keep rivalries friendly — these pass directly into the moderation prompt"></textarea>
-          <div class="cam-readout">These instructions pass directly into the agent's instructions for how to moderate.</div>
+          <textarea placeholder="e.g. no alcohol references, keep rivalries friendly"></textarea>
+          <div class="hint">These pass directly into the moderation prompt — the agent's instructions for how to judge builds.</div>
         </div>
       </div>
 
-      <div class="card" id="agent-instructions-card">
-        <div class="row">
+      <div class="set-card">
+        <div class="set-row">
           <div class="lab"><b>Additional agent instructions</b><span>Passed to the agent on every build</span></div>
-          <label class="expand-label" id="agent-instructions-toggle">＋ add</label>
+          <div class="set-ctl"><span class="expander" data-target="agent-instructions">＋ add</span></div>
         </div>
-        <div class="expand" id="agent-instructions">
+        <div class="set-body" id="agent-instructions">
           <label class="f">Agent instructions</label>
           <textarea placeholder="e.g. lean into late-night chat in-jokes; never use the rainbow palette"></textarea>
         </div>
       </div>
 
-      <div class="card" id="cam-card">
-        <div class="row">
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div>
+          <div class="set-ctl"><button class="toggle on" aria-label="announce plays"></button></div>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Max slop seconds</b><span>The hard ceiling per play</span></div>
+          <div class="set-ctl"><input class="set-input num" value="60" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-row">
+          <div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div>
+          <div class="set-ctl"><input class="set-input num" value="10" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-row">
           <div class="lab"><b>Streamer cam</b><span>Where your camera sits on the canvas — drag to place, corner to resize</span></div>
         </div>
-        <div class="cam-wrap">
+        <div style="margin-top:.85rem;">
           <div class="cam-stage" id="cam-stage">
-            <iframe
-              id="twitch-embed"
-              src="https://player.twitch.tv/?channel=savorysailor&parent=${PLACEHOLDER_PARENT}&muted=true"
-              allowfullscreen
-              muted
-            ></iframe>
+            <iframe id="twitch-embed" title="slopbot.gg — your stream preview" allowfullscreen></iframe>
             <span class="live">● LIVE</span>
             <div class="cam-rect" id="cam-rect">
               <span class="cam-tag">CAM</span>
@@ -335,15 +321,15 @@ export function frame(ctx, t, dt) {}</textarea>
 
   <!-- ACCOUNT -->
   <section class="pane" id="pane-account">
-    <div class="account">
+    <div class="account" style="max-width:560px;">
       <div class="card">
-        <div class="profile-head">
-          <div class="avatar"></div>
-          <div><h2>Placeholder Streamer</h2><div class="sub">twitch.tv/placeholder · connected with Twitch</div></div>
+        <div class="profile-head" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+          <div class="avatar" style="width:64px; height:64px;"></div>
+          <div><h2 style="margin:0; font-size:1.2rem;">Placeholder Streamer</h2><div style="color:var(--muted); font-size:.88rem;">twitch.tv/savorysailor · connected with Twitch</div></div>
         </div>
-        <div class="kv">
-          <div class="card"><h3>Channel</h3>placeholderstream</div>
-          <div class="card"><h3>Plan</h3>SlopBot AI — evaluation</div>
+        <div class="kv" style="display:grid; grid-template-columns:1fr 1fr; gap:.8rem;">
+          <div class="card"><h3>Channel</h3>savorysailor</div>
+          <div class="card"><h3>Plan</h3>slopbot.gg — evaluation</div>
           <div class="card"><h3>Slops owned</h3>4</div>
           <div class="card"><h3>Member since</h3>Nov 2026</div>
         </div>
@@ -352,8 +338,9 @@ export function frame(ctx, t, dt) {}</textarea>
   </section>
 </main>
 
+<script src="slop-confirm.js"></script>
 <script>
-  // Demo data — placeholder, per the look-and-feel pass.
+  // ---------- slops (placeholder, per the look-and-feel pass) ----------
   const PLACEHOLDER_SLOPS = [
     { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12 },
     { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31 },
@@ -365,11 +352,15 @@ export function frame(ctx, t, dt) {}</textarea>
     const el = document.createElement('div');
     el.className = 'card slop-card';
     el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
-      <div class="row"><span class="pill ${s.state}">${s.state}</span><button class="btn ghost" style="padding:.3rem .8rem">Play</button></div>`;
+      <div class="row"><span class="pill ${s.state}">${s.state}</span>
+        <span style="display:flex; gap:.4rem;">
+          <button class="btn ghost" style="padding:.3rem .8rem">Play</button>
+          <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
+        </span></div>`;
     grid.appendChild(el);
   }
 
-  // Drawer + panes
+  // ---------- drawer + panes ----------
   const panes = { slops: 'Slops', workshop: 'Workshop', settings: 'Settings', account: 'Account' };
   document.querySelectorAll('nav [data-pane]').forEach((b) => {
     b.addEventListener('click', () => {
@@ -378,54 +369,66 @@ export function frame(ctx, t, dt) {}</textarea>
       document.querySelectorAll('.pane').forEach((p) => p.classList.remove('active'));
       document.getElementById('pane-' + b.dataset.pane).classList.add('active');
       document.getElementById('pane-title').textContent = panes[b.dataset.pane];
+      if (b.dataset.pane === 'settings') mountEmbed();
     });
   });
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
   });
 
-  // The Twitch embed's parent param must match the page's host.
-  const embed = document.getElementById('twitch-embed');
-  if (embed) {
-    embed.src = embed.src.replace('${PLACEHOLDER_PARENT}', window.location.hostname);
+  // ---------- Twitch embed (dev.twitch.tv/docs/embed/video-and-clips) ----------
+  // Built entirely in JS: parent must match the embedding page's hostname,
+  // and for nested iframes (the ADE preview) every ancestor origin gets its
+  // own &parent= param. Muted, always. Mounted LAZILY on the first open of
+  // the Settings pane — Twitch rejects autoplay while the iframe is hidden,
+  // and a streamer's dashboard shouldn't pull the stream until it's shown.
+  let embedMounted = false;
+  function mountEmbed() {
+    if (embedMounted) return;
+    embedMounted = true;
+    const hosts = new Set([window.location.hostname]);
+    try {
+      for (const o of window.location.ancestorOrigins || []) hosts.add(new URL(o).hostname);
+    } catch (_) { /* ancestorOrigins unsupported — the page's own host is enough */ }
+    const parents = [...hosts].map((h) => `&parent=${encodeURIComponent(h)}`).join('');
+    document.getElementById('twitch-embed').src =
+      `https://player.twitch.tv/?channel=savorysailor&autoplay=true&muted=true${parents}`;
   }
 
-  // The moderation tier's note follows the dropdown.
+  // ---------- settings ----------
   const MOD_NOTES = {
     kid: 'Child-safe themes only. Very conservative in judgment.',
     teen: 'Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.',
     adult: 'Lewd content, sexual references, and drug or alcohol references allowed.',
-    anything: 'As objectionable as the model allows — minus what Twitch\'s guidelines forbid.',
+    anything: 'As objectionable as the model allows — minus what Twitch\u2019s guidelines forbid.',
   };
   document.getElementById('mod-level').addEventListener('change', (e) => {
     document.getElementById('mod-note').textContent = MOD_NOTES[e.target.value] || '';
   });
 
-  // The chat prefix's live preview.
-  const prefixInput = document.getElementById('chat-prefix');
-  prefixInput.addEventListener('input', () => {
-    document.getElementById('prefix-preview').textContent = '!' + (prefixInput.value.trim() || 'slop');
+  // expanders light up + reveal their card's body
+  document.querySelectorAll('.expander').forEach((x) => {
+    x.addEventListener('click', () => x.closest('.set-card').classList.toggle('expanded'));
   });
 
+  // plain toggles
+  document.querySelectorAll('.settings .toggle').forEach((t) => {
+    t.addEventListener('click', () => t.classList.toggle('on'));
+  });
+
+  // destructive actions confirm first
   grid.addEventListener('click', async (e) => {
     const del = e.target.closest('[data-del]');
     if (!del) return;
     const yes = await window.slopConfirm('Delete this slop?', `"${del.dataset.del}" will be removed from your registry. This cannot be undone.`, 'Delete');
     if (yes) del.closest('.slop-card').remove();
   });
-
-  // Simple on/off toggles
-  document.querySelectorAll('.settings .toggle, .trigger-opt > .toggle').forEach((t) => {
-    t.addEventListener('click', () => t.classList.toggle('on'));
+  document.getElementById('settings-reset').addEventListener('click', async () => {
+    const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');
+    if (yes) document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
   });
 
-  // Expandable advanced cards
-  document.getElementById('mod-advanced-toggle').addEventListener('click', () =>
-    document.getElementById('moderation-card').classList.toggle('expanded'));
-  document.getElementById('agent-instructions-toggle').addEventListener('click', () =>
-    document.getElementById('agent-instructions-card').classList.toggle('expanded'));
-
-  // ---- the streamer cam picker: drag to place, corner to resize (0–1) ----
+  // ---------- the streamer cam picker: drag to place, corner to resize (0–1) ----------
   const stage = document.getElementById('cam-stage');
   const rect = document.getElementById('cam-rect');
   const handle = document.getElementById('cam-handle');
@@ -442,15 +445,17 @@ export function frame(ctx, t, dt) {}</textarea>
     readout.w.textContent = cam.w.toFixed(2);
     readout.h.textContent = cam.h.toFixed(2);
   }
-  function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
-  let drag = null; // {mode: 'move'|'resize', startX, startY, cam0}
+  let drag = null;
   stage.addEventListener('pointerdown', (e) => {
     const r = stage.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width;
-    const py = (e.clientY - r.top) / r.height;
-    const onHandle = e.target === handle;
-    drag = { mode: onHandle ? 'resize' : 'move', startX: px, startY: py, cam0: { ...cam } };
+    drag = {
+      mode: e.target === handle ? 'resize' : 'move',
+      startX: (e.clientX - r.left) / r.width,
+      startY: (e.clientY - r.top) / r.height,
+      cam0: { ...cam },
+    };
     stage.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
@@ -473,12 +478,6 @@ export function frame(ctx, t, dt) {}</textarea>
     cam.x = .72; cam.y = .55; cam.w = .22; cam.h = .40; renderCam();
   });
   renderCam();
-
-  // The settings Reset is destructive — confirm it.
-  document.getElementById('settings-reset').addEventListener('click', async () => {
-    const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');
-    if (yes) document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
-  });
 </script>
 </body>
 </html>

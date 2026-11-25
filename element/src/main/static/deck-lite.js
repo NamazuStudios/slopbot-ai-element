@@ -114,27 +114,6 @@ async function tick() {
   }
 }
 
-// Destructive deck actions confirm first (the shared branded modal).
-window.slopConfirm = (title, message, confirmLabel = 'Remove') => new Promise((resolve) => {
-  const backdrop = document.createElement('div');
-  backdrop.className = 'confirm-backdrop';
-  backdrop.innerHTML = `
-    <div class="confirm-card">
-      <h4>${title}</h4><p>${message}</p>
-      <div class="btns">
-        <button class="btn ghost" data-x="no">Cancel</button>
-        <button class="btn danger" data-x="yes">${confirmLabel}</button>
-      </div>
-    </div>`;
-  const done = (yes) => { backdrop.remove(); resolve(yes); };
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) return done(false);
-    const b = e.target.closest('[data-x]');
-    if (b) done(b.dataset.x === 'yes');
-  });
-  document.body.appendChild(backdrop);
-});
-
 document.addEventListener('click', async (e) => {
   const cancel = e.target.closest('[data-cancel]');
   if (cancel) {
