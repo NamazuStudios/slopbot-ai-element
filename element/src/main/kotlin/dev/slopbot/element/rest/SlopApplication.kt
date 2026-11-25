@@ -42,6 +42,12 @@ class SlopApplication : Application() {
         @ElementDefaultAttribute("/slop/ws")
         val WS_ROOT: String = "dev.getelements.elements.element.ws.root"
 
+        // The static tree (the overlay, the deck, the landing page) serves at
+        // the root — the OBS overlay is the product's face at /slop.html etc.
+        @JvmField
+        @ElementDefaultAttribute("/")
+        val STATIC_CONTENT_URI: String = "dev.getelements.element.static.uri"
+
         // The OIDC issuer whose bearer tokens guard the MCP surface (the bound
         // Elements instance). Empty fails closed: every MCP call is 401 until
         // the deployment wires a real issuer.
