@@ -648,18 +648,36 @@
   });
   renderSlops();
 
-  // ---------- drawer + panes ----------
+  // ---------- router: /dashboard/{pane} paths ----------
+  // Path-based: the element's embedded attributes map the static tree's
+  // 404 to dashboard.html, so any unmatched path serves this shell and the
+  // router reads location.pathname. The nav buttons pushState; popstate
+  // (back/forward) and deep links (/dashboard/settings, /settings) both
+  // resolve through the same parser; anything unmatched falls back to slops.
   const panes = { slops: 'Slops', workshop: 'Workshop', settings: 'Settings', account: 'Account' };
+  const ROUTES = Object.keys(panes);
+  function paneFromPath() {
+    const parts = location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+    for (let i = parts.length - 1; i >= Math.max(0, parts.length - 2); i--) {
+      if (panes[parts[i]]) return parts[i];
+    }
+    return 'slops';
+  }
+  function activate(route) {
+    document.querySelectorAll('nav [data-pane]').forEach((x) => x.classList.toggle('active', x.dataset.pane === route));
+    document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === 'pane-' + route));
+    document.getElementById('pane-title').textContent = panes[route];
+    document.title = 'slopbot.gg — ' + panes[route];
+    if (route === 'settings') mountEmbed();
+  }
+  window.addEventListener('popstate', () => activate(paneFromPath()));
   document.querySelectorAll('nav [data-pane]').forEach((b) => {
     b.addEventListener('click', () => {
-      document.querySelectorAll('nav [data-pane]').forEach((x) => x.classList.remove('active'));
-      b.classList.add('active');
-      document.querySelectorAll('.pane').forEach((p) => p.classList.remove('active'));
-      document.getElementById('pane-' + b.dataset.pane).classList.add('active');
-      document.getElementById('pane-title').textContent = panes[b.dataset.pane];
-      if (b.dataset.pane === 'settings') mountEmbed();
+      history.pushState({}, '', '/dashboard/' + b.dataset.pane);
+      activate(b.dataset.pane);
     });
   });
+  activate(paneFromPath());
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
   });

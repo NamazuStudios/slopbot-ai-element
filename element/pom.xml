@@ -295,6 +295,11 @@
                                 <copy todir="${elm.element.dir}/ui" failonerror="false">
                                     <fileset dir="${basedir}/src/main/ui" erroronmissingdir="false" includes="**/*"/>
                                 </copy>
+                                <!-- element attributes embedded in the .elm root —
+                                     the path router depends on the 404 fallback -->
+                                <copy todir="${elm.element.dir}" failonerror="false">
+                                    <fileset dir="${basedir}/src/main/elm" erroronmissingdir="false" includes="*.properties"/>
+                                </copy>
                             </target>
                         </configuration>
                     </execution>
