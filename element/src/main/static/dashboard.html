@@ -56,7 +56,13 @@
   .slop-card .row { display: flex; align-items: center; justify-content: space-between; }
 
   /* workshop */
-  .workshop { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; }
+  .workshop { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start; }
+  .workshop-left { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .ov-card .set-body { padding-top: .85rem; }
+  .ov-card .nested { display: none; }
+  .ov-card .nested.nested-open { display: block; margin-top: .8rem; }
+  .adv-row { margin-top: .7rem; display: flex; }
+  .expander.lit { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .18); }
   textarea {
     width: 100%; min-height: 260px; border-radius: 10px; border: 1px solid var(--line);
     background: #0a0f2c; color: var(--text); font: 13px/1.5 ui-monospace, monospace; padding: .8rem;
@@ -101,7 +107,7 @@
     transition: all .12s;
   }
   .expander:hover { color: #fff; }
-  .set-card.expanded .expander {
+  .settings .set-card.expanded .expander {
     border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .18);
   }
 
@@ -182,22 +188,88 @@
   <!-- WORKSHOP -->
   <section class="pane" id="pane-workshop">
     <div class="workshop">
-      <div class="card">
-        <h3>Author a slop</h3>
-        <label class="f">Prompt</label>
-        <input class="set-input" style="width:100%" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
-        <label class="f">Agent brief (generated from your prompt — editable)</label>
-        <textarea>export const meta = {
-  title: '…',
-  author: 'placeholder',
-};
-export function init(ctx) {}
-export function frame(ctx, t, dt) {}</textarea>
-        <div style="margin-top:.9rem; display:flex; gap:.6rem;">
-          <button class="btn">Send to build</button>
-          <button class="btn ghost">Save draft</button>
+      <div class="workshop-left">
+
+        <div class="card">
+          <h3>Author a slop</h3>
+          <label class="f">Prompt</label>
+          <input class="set-input" style="width:100%" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
+          <div style="margin-top:.9rem; display:flex; gap:.6rem;">
+            <button class="btn">Send to build</button>
+            <button class="btn ghost">Save draft</button>
+          </div>
         </div>
+
+        <!-- Per-build overrides: each toggle replaces a Settings default
+             for THIS build only, so the user can test different settings. -->
+        <div class="card set-card ov-card">
+          <div class="set-row">
+            <div class="lab"><b>Moderation level</b><span class="ov-state" data-off="off — uses your Settings default (Teen)">off — uses your Settings default (Teen)</span></div>
+            <div class="set-ctl"><button class="toggle" aria-label="moderation override"></button></div>
+          </div>
+          <div class="set-body">
+            <label class="f">Moderation tier</label>
+            <select class="set-input" style="width:170px">
+              <option value="kid">Kid Friendly</option>
+              <option value="teen" selected>Teen</option>
+              <option value="adult">Adult</option>
+              <option value="anything">Anything Goes</option>
+            </select>
+            <div class="adv-row">
+              <label class="expander">⚙︎ advanced — moderation notes</label>
+            </div>
+            <div class="nested">
+              <label class="f">Additional moderation instructions</label>
+              <textarea placeholder="e.g. no alcohol references, keep rivalries friendly"></textarea>
+              <div class="hint">Passes directly into the moderation prompt — this build only.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card set-card ov-card">
+          <div class="set-row">
+            <div class="lab"><b>Generation model</b><span class="ov-state" data-off="off — uses your Settings default (hyper / prism)">off — uses your Settings default (hyper / prism)</span></div>
+            <div class="set-ctl"><button class="toggle" aria-label="model override"></button></div>
+          </div>
+          <div class="set-body">
+            <label class="f">Model for this build</label>
+            <select class="set-input" style="width:240px">
+              <option value="prism" selected>hyper / prism</option>
+              <option value="prism-flash">hyper / prism-flash</option>
+              <option value="prism-core">hyper / prism-core</option>
+              <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
+              <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
+              <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
+              <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
+              <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card set-card ov-card">
+          <div class="set-row">
+            <div class="lab"><b>Additional agent notes</b><span class="ov-state" data-off="off — builds run with your Settings instructions only">off — builds run with your Settings instructions only</span></div>
+            <div class="set-ctl"><button class="toggle" aria-label="agent notes override"></button></div>
+          </div>
+          <div class="set-body">
+            <label class="f">Agent notes</label>
+            <textarea placeholder="e.g. lean into late-night chat in-jokes; never use the rainbow palette"></textarea>
+          </div>
+        </div>
+
+        <div class="card set-card ov-card">
+          <div class="set-row">
+            <div class="lab"><b>Slop maximum time</b><span class="ov-state" data-off="off — uses your Settings default (60s)">off — uses your Settings default (60s)</span></div>
+            <div class="set-ctl"><button class="toggle" aria-label="max time override"></button></div>
+          </div>
+          <div class="set-body">
+            <label class="f">Maximum seconds for this build</label>
+            <input class="set-input num" value="60" inputmode="numeric"> <span class="hint" style="display:inline">seconds</span>
+          </div>
+        </div>
+
       </div>
+
       <div class="card">
         <h3>Build queue</h3>
         <p style="color:var(--muted)">Nothing building. Slops you send land here with live progress.</p>
@@ -405,6 +477,27 @@ export function frame(ctx, t, dt) {}</textarea>
       `https://player.twitch.tv/?channel=savorysailor&autoplay=true&muted=true${parents}`;
   }
 
+  // ---------- workshop overrides ----------
+  // Each override's toggle replaces a Settings default for THIS build only.
+  document.querySelectorAll('#pane-workshop .ov-card').forEach((card) => {
+    const t = card.querySelector('.toggle');
+    const lab = card.querySelector('.ov-state');
+    const offText = lab.dataset.off;
+    t.addEventListener('click', () => {
+      const on = t.classList.toggle('on');
+      card.classList.toggle('expanded', on);
+      lab.textContent = on ? 'override active — this build only' : offText;
+    });
+  });
+  // the nested advanced expander inside the moderation override — lights up
+  // while its notes textarea is open, mirroring the Settings behavior
+  document.querySelectorAll('#pane-workshop .expander').forEach((x) => {
+    x.addEventListener('click', () => {
+      const nested = x.closest('.set-body').querySelector('.nested');
+      x.classList.toggle('lit', nested.classList.toggle('nested-open'));
+    });
+  });
+
   // ---------- settings ----------
   const MOD_NOTES = {
     kid: 'Child-safe themes only. Very conservative in judgment.',
@@ -416,8 +509,9 @@ export function frame(ctx, t, dt) {}</textarea>
     document.getElementById('mod-note').textContent = MOD_NOTES[e.target.value] || '';
   });
 
-  // expanders light up + reveal their card's body
-  document.querySelectorAll('.expander').forEach((x) => {
+  // expanders light up + reveal their card's body (Settings pane only —
+  // the workshop's override cards run their own expander logic)
+  document.querySelectorAll('.settings .expander').forEach((x) => {
     x.addEventListener('click', () => x.closest('.set-card').classList.toggle('expanded'));
   });
 
