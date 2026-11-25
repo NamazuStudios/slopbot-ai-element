@@ -60,7 +60,8 @@ function renderGeneration(queue) {
     d.innerHTML = `
       <span class="badge">${i + 1}</span>
       <div class="t"><b>${esc(q.text || q.prompt || '(no prompt)')}</b><span>${esc(q.status || 'queued')}</span></div>
-      <span class="st">${esc(q.status || '')}</span>`;
+      <span class="st">${esc(q.status || '')}</span>
+      <div class="act"><button data-cancel="${esc(q.id || i)}" title="cancel this build">✕</button></div>`;
     list.appendChild(d);
   });
 }
@@ -86,7 +87,8 @@ function renderPlayback(plays) {
     d.className = 'item';
     d.innerHTML = `
       <span class="badge">${i + 1}</span>
-      <div class="t"><b>${esc(p.title || short(p))}</b><span>up next${plays.paused ? ' · paused' : ''}</span></div>`;
+      <div class="t"><b>${esc(p.title || short(p))}</b><span>up next${plays.paused ? ' · paused' : ''}</span></div>
+      <div class="act"><button data-unqueue="${esc(p.name || i)}" title="remove from queue">✕</button></div>`;
     list.appendChild(d);
   });
 }
@@ -112,7 +114,40 @@ async function tick() {
   }
 }
 
-document.addEventListener('click', (e) => {
+// Destructive deck actions confirm first (the shared branded modal).
+window.slopConfirm = (title, message, confirmLabel = 'Remove') => new Promise((resolve) => {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'confirm-backdrop';
+  backdrop.innerHTML = `
+    <div class="confirm-card">
+      <h4>${title}</h4><p>${message}</p>
+      <div class="btns">
+        <button class="btn ghost" data-x="no">Cancel</button>
+        <button class="btn danger" data-x="yes">${confirmLabel}</button>
+      </div>
+    </div>`;
+  const done = (yes) => { backdrop.remove(); resolve(yes); };
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) return done(false);
+    const b = e.target.closest('[data-x]');
+    if (b) done(b.dataset.x === 'yes');
+  });
+  document.body.appendChild(backdrop);
+});
+
+document.addEventListener('click', async (e) => {
+  const cancel = e.target.closest('[data-cancel]');
+  if (cancel) {
+    const yes = await window.slopConfirm('Cancel this build?', 'The queued prompt will be discarded and will not generate a slop.', 'Cancel build');
+    if (yes) cancel.closest('.item').remove();
+    return;
+  }
+  const unqueue = e.target.closest('[data-unqueue]');
+  if (unqueue) {
+    const yes = await window.slopConfirm('Remove from the playback queue?', 'It will leave the on-screen queue and will not play unless re-queued.', 'Remove');
+    if (yes) unqueue.closest('.item').remove();
+    return;
+  }
   const b = e.target.closest('[data-play]');
   if (!b) return;
   fetch(`${BASE}/slop/play/${encodeURIComponent(b.dataset.play)}`, {

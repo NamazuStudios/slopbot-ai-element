@@ -81,3 +81,21 @@ body {
 .pill.approved { background: rgba(46, 230, 168, .15); color: var(--ok); }
 .pill.pending  { background: rgba(255, 200, 87, .15); color: var(--warn); }
 .pill.rejected { background: rgba(255, 77, 179, .18); color: var(--pink-soft); }
+
+/* ---- confirm modal (destructive actions) ---- */
+.confirm-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(4, 7, 22, .7);
+  display: grid; place-items: center;
+}
+.confirm-card {
+  width: min(420px, calc(100vw - 3rem));
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 1.2rem 1.3rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+}
+.confirm-card h4 { margin: 0 0 .4rem; font-size: 1.02rem; }
+.confirm-card p { margin: 0 0 1rem; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+.confirm-card .btns { display: flex; justify-content: flex-end; gap: .6rem; }
+.confirm-card .btn.danger { background: linear-gradient(135deg, #ff3b5c 0%, #c40040 100%); }

@@ -89,9 +89,14 @@
   /* build-trigger options */
   .trigger-opts { display: flex; flex-direction: column; gap: .55rem; margin-top: .7rem; }
   .trigger-opt {
-    display: flex; align-items: center; justify-content: space-between;
-    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem;
+    display: flex; flex-direction: column; align-items: stretch; gap: .4rem;
+    border: 1px solid var(--line); border-radius: 10px; padding: .65rem .8rem;
     background: rgba(10, 15, 44, .5);
+  }
+  .trigger-opt .t-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .expand-label { transition: all .12s; }
+  .card.expanded .expand-label {
+    border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .16);
   }
   .trigger-opt .lab b { display: block; font-size: .9rem; }
   .trigger-opt .lab span { color: var(--muted); font-size: .78rem; }
@@ -220,54 +225,44 @@ export function frame(ctx, t, dt) {}</textarea>
 
       <div class="card row">
         <div class="lab"><b>Default generation model</b><span>The model every build runs on (Hyper-metered)</span></div>
-        <select class="t" style="width:240px" id="model-select">
-          <option value="" selected>agent default (gemini-4-neon)</option>
-          <option>gemini-4-neon</option>
-          <option>gemini-3.8-flash</option>
-          <option>gemini-3.7-flash</option>
-          <option>claude-haiku-4-5</option>
-          <option>grok-4.7</option>
-          <option>grok-build-0.1</option>
-          <option>qwen3.8-flash</option>
-          <option>qwen3.6-plus</option>
-          <option>qwen3.5-plus</option>
-          <option>gpt-5.4-mini</option>
-          <option>prism</option>
-          <option>prism-core</option>
-          <option>prism-flash</option>
-          <option>deepseek-v4.1-flash-1017</option>
-          <option>deepseek-v4.1-flash</option>
-        </select>
+        <select class="t" style="width:280px" id="model-select">
+          <option value="">hyper / gemini-4-neon (agent default)</option>
+          <option value="gemini-4-neon" selected>hyper / gemini-4-neon</option>
+          <option value="gemini-3.8-flash">hyper / gemini-3.8-flash</option>
+          <option value="gemini-3.7-flash">hyper / gemini-3.7-flash</option>
+          <option value="claude-haiku-4-5">hyper / claude-haiku-4-5</option>
+          <option value="grok-4.7">hyper / grok-4.7</option>
+          <option value="grok-build-0.1">hyper / grok-build-0.1</option>
+          <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
+          <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
+          <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
+          <option value="gpt-5.4-mini">hyper / gpt-5.4-mini</option>
+          <option value="prism">hyper / prism</option>
+          <option value="prism-core">hyper / prism-core</option>
+          <option value="prism-flash">hyper / prism-flash</option>
+          <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
+          <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
+
       </div>
 
       <div class="card">
         <div class="row">
-          <div class="lab"><b>Build triggers</b><span>How the chat can start a build — several may be on at once</span></div>
+          <div class="lab"><b>Chat commands</b><span>The chat commands that drive the bot — the <b style="color:var(--text)">!</b> prefix is fixed</span></div>
         </div>
         <div class="trigger-opts">
-          <div class="trigger-opt">
-            <div class="lab"><b>Channel-point redeem</b><span>Viewers redeem the configured reward</span></div>
-            <button class="toggle on"></button>
-          </div>
-          <div class="trigger-opt">
-            <div class="lab"><b>Gift subscription</b><span>A gifted sub starts a build</span></div>
-            <button class="toggle"></button>
-          </div>
-          <div class="trigger-opt" id="trigger-chat">
-            <div>
-              <div class="lab"><b>Chat command</b><span>The command that starts a build — the prefix is always <b style="color:var(--text)">!</b></span>
-              <div class="prefix-row">!<input class="t prefix-input" id="chat-prefix" value="slop" spellcheck="false"> <span class="prefix-hint">viewers type <b id="prefix-preview">!slop</b> &lt;prompt&gt;</span></div></div>
-              <div class="who-row">
-                <div class="who-label">who can use it</div>
-                <div class="who-opts">
-                  <span class="who-opt on">Everyone</span>
-                  <span class="who-opt">VIPs</span>
-                  <span class="who-opt">Mods</span>
-                  <span class="who-opt">Streamer</span>
-                </div>
-              </div>
+          <div class="trigger-opt expanded">
+            <div class="t-top">
+              <div class="lab"><b>Generate command</b><span>Starts a build for a new slop</span></div>
+              <button class="toggle on"></button>
             </div>
-            <button class="toggle on"></button>
+            <div class="prefix-row">!<input class="t prefix-input" id="gen-prefix" value="slopbuild" spellcheck="false"></div>
+          </div>
+          <div class="trigger-opt expanded">
+            <div class="t-top">
+              <div class="lab"><b>Playback command</b><span>Plays and searches your existing slops</span></div>
+              <button class="toggle on"></button>
+            </div>
+            <div class="prefix-row">!<input class="t prefix-input" id="play-prefix" value="slop" spellcheck="false"></div>
           </div>
         </div>
       </div>
@@ -276,11 +271,11 @@ export function frame(ctx, t, dt) {}</textarea>
         <div class="row">
           <div class="lab"><b>Moderation level</b><span id="mod-note">Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.</span></div>
           <div style="display:flex; align-items:center; gap:.8rem;">
-            <select class="t" style="width:130px" id="mod-level">
-              <option value="kid">kid</option>
-              <option value="teen" selected>teen</option>
-              <option value="adult">adult</option>
-              <option value="anything">anything*</option>
+            <select class="t" style="width:170px" id="mod-level">
+              <option value="kid">Kid Friendly</option>
+              <option value="teen" selected>Teen</option>
+              <option value="adult">Adult</option>
+              <option value="anything">Anything Goes</option>
             </select>
             <label class="expand-label" id="mod-advanced-toggle">⚙︎ advanced</label>
           </div>
@@ -333,7 +328,7 @@ export function frame(ctx, t, dt) {}</textarea>
 
       <div style="display:flex; gap:.6rem;">
         <button class="btn">Save settings</button>
-        <button class="btn ghost">Reset</button>
+        <button class="btn ghost" id="settings-reset">Reset</button>
       </div>
     </div>
   </section>
@@ -412,16 +407,17 @@ export function frame(ctx, t, dt) {}</textarea>
     document.getElementById('prefix-preview').textContent = '!' + (prefixInput.value.trim() || 'slop');
   });
 
+  grid.addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-del]');
+    if (!del) return;
+    const yes = await window.slopConfirm('Delete this slop?', `"${del.dataset.del}" will be removed from your registry. This cannot be undone.`, 'Delete');
+    if (yes) del.closest('.slop-card').remove();
+  });
+
   // Simple on/off toggles
   document.querySelectorAll('.settings .toggle, .trigger-opt > .toggle').forEach((t) => {
     t.addEventListener('click', () => t.classList.toggle('on'));
   });
-
-  // The chat-command trigger: expanding it reveals the who-options.
-  const chatRow = document.getElementById('trigger-chat');
-  chatRow.querySelector('.toggle').addEventListener('click', () => chatRow.classList.toggle('expanded'));
-  chatRow.classList.add('expanded');
-  document.querySelectorAll('.who-opt').forEach((o) => o.addEventListener('click', () => o.classList.toggle('on')));
 
   // Expandable advanced cards
   document.getElementById('mod-advanced-toggle').addEventListener('click', () =>
@@ -477,6 +473,12 @@ export function frame(ctx, t, dt) {}</textarea>
     cam.x = .72; cam.y = .55; cam.w = .22; cam.h = .40; renderCam();
   });
   renderCam();
+
+  // The settings Reset is destructive — confirm it.
+  document.getElementById('settings-reset').addEventListener('click', async () => {
+    const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');
+    if (yes) document.querySelectorAll('.settings .toggle').forEach((t) => t.classList.remove('on'));
+  });
 </script>
 </body>
 </html>
