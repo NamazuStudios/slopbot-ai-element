@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>slopbot.gg — Slop</title>
+<link rel="stylesheet" href="slopbot-ui.css">
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+  .stage {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    background: var(--deep);
+  }
+  .center { text-align: center; color: var(--muted); }
+  .center .logo { font-size: 1.3rem; color: var(--text); margin-bottom: .6rem; }
+  .center .what { font-size: .9rem; }
+  .center .hint { font-size: .75rem; color: #6d76a8; margin-top: .4rem; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="center">
+    <div class="logo">slopbot<em>.gg</em></div>
+    <div class="what">nothing playing — this screen renders the current slop</div>
+    <div class="hint">open it from the dashboard's "Slop" entry · keep it on a display or a browser source</div>
+  </div>
+</div>
+</body>
+</html>

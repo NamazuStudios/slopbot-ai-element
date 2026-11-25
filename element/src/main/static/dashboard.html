@@ -20,7 +20,7 @@
   }
   aside.collapsed { width: 64px; min-width: 64px; }
   aside .logo { padding: .4rem .6rem 1.2rem; font-size: 1.05rem; white-space: nowrap; }
-  aside.collapsed .logo span, aside.collapsed .navlabel, aside.collapsed .drawer-head { display: none; }
+  aside.collapsed .logo span, aside.collapsed .navlabel, aside.collapsed .drawer-head, aside.collapsed .copy-link { display: none; }
   nav { display: flex; flex-direction: column; gap: .25rem; }
   nav a, nav button {
     display: flex; align-items: center; gap: .7rem;
@@ -36,6 +36,12 @@
   .drawer-head { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: #6d76a8; padding: .8rem .7rem .3rem; }
   .collapse-btn { margin-top: auto; }
   .out-arrow { margin-left: auto; }
+  .copy-link {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 6px; cursor: pointer; font-size: .78rem; padding: .1rem .3rem; margin-right: .3rem;
+  }
+  .copy-link:hover { color: #fff; border-color: var(--pink); }
+  .copy-link.copied { color: var(--ok); border-color: var(--ok); }
 
   main { flex: 1; height: 100vh; overflow-y: auto; padding: 1.6rem 2rem; min-width: 0; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
   main::-webkit-scrollbar { width: 10px; }
@@ -279,6 +285,10 @@
     <div class="divider"></div>
     <a href="deck.html" target="_blank" rel="opener">
       <span class="ic">🎛️</span><span class="navlabel">Deck</span><span class="out-arrow">↗</span>
+    </a>
+    <a href="slop-play.html" target="_blank" rel="opener">
+      <span class="ic">📺</span><span class="navlabel">Slop</span>
+      <span class="out-arrow"><button class="copy-link" data-copy="slop-play.html" title="copy link to this screen">⧉</button>↗</span>
     </a>
   </nav>
   <button class="ghost btn collapse-btn" id="collapse">⟨⟩</button>
@@ -651,6 +661,21 @@
   });
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
+  });
+
+  // the Slop entry's copy-link chip: copies the playback page's URL
+  const copyBtn = document.querySelector('.copy-link');
+  copyBtn.addEventListener('click', async (e) => {
+    e.preventDefault(); // don't navigate — just copy
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(new URL(copyBtn.dataset.copy, location.href).href);
+      copyBtn.textContent = '✓';
+      copyBtn.classList.add('copied');
+    } catch (_) {
+      copyBtn.textContent = '✕';
+    }
+    setTimeout(() => { copyBtn.textContent = '⧉'; copyBtn.classList.remove('copied'); }, 1500);
   });
 
   // ---------- Twitch embed (dev.twitch.tv/docs/embed/video-and-clips) ----------
