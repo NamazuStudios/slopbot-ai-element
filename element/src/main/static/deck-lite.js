@@ -49,7 +49,11 @@ function renderRegistry(entries) {
   }
 }
 
+const hiddenGen = new Set();
+const hiddenPlay = new Set();
+
 function renderGeneration(queue) {
+  queue = (queue || []).filter((x) => !hiddenGen.has(x.id ?? x.prompt ?? x.text));
   const list = el('generation-list');
   list.innerHTML = '';
   el('gen-count').textContent = `· ${queue.length}`;
@@ -61,12 +65,15 @@ function renderGeneration(queue) {
       <span class="badge">${i + 1}</span>
       <div class="t"><b>${esc(q.text || q.prompt || '(no prompt)')}</b><span>${esc(q.status || 'queued')}</span></div>
       <span class="st">${esc(q.status || '')}</span>
-      <div class="act"><button data-cancel="${esc(q.id || i)}" title="cancel this build">✕</button></div>`;
+      <div class="act"><button data-cancel="${esc(q.id ?? q.prompt ?? q.text ?? ('i' + i))}" title="cancel this build">✕</button></div>`;
     list.appendChild(d);
   });
 }
 
 function renderPlayback(plays) {
+  plays = plays || {};
+  plays.upcoming = (plays.upcoming || []).filter((x) => !hiddenPlay.has(x.name));
+  plays.current = plays.current && !hiddenPlay.has(plays.current.name) ? plays.current : null;
   const list = el('playback-list');
   list.innerHTML = '';
   const current = plays.current ? [plays.current] : [];
@@ -88,7 +95,7 @@ function renderPlayback(plays) {
     d.innerHTML = `
       <span class="badge">${i + 1}</span>
       <div class="t"><b>${esc(p.title || short(p))}</b><span>up next${plays.paused ? ' · paused' : ''}</span></div>
-      <div class="act"><button data-unqueue="${esc(p.name || i)}" title="remove from queue">✕</button></div>`;
+      <div class="act"><button data-unqueue="${esc(p.name ?? ('i' + i))}" title="remove from queue">✕</button></div>`;
     list.appendChild(d);
   });
 }
@@ -97,7 +104,9 @@ function renderCounts(s) {
   el('counts').textContent = `${(s.registered || []).length} slops · ${(s.queue || []).length} building · ${(s.plays?.upcoming || []).length} queued`;
 }
 
+let last = PLACEHOLDER;
 function render(s) {
+  last = s;
   renderRegistry(s.registered || []);
   renderGeneration(s.queue || []);
   renderPlayback(s.plays || {});
@@ -114,17 +123,33 @@ async function tick() {
   }
 }
 
-document.addEventListener('click', async (e) => {
+document.addEventListener('click', (e) => {
   const cancel = e.target.closest('[data-cancel]');
   if (cancel) {
-    const yes = await window.slopConfirm('Cancel this build?', 'The queued prompt will be discarded and will not generate a slop.', 'Cancel build');
-    if (yes) cancel.closest('.item').remove();
+    const yes = e.target.closest('[data-yes]');
+    const no = e.target.closest('[data-no]');
+    if (yes) {
+      window.slopSureReset(cancel);
+      hiddenGen.add(cancel.dataset.cancel);
+      render(last);
+      return;
+    }
+    if (no || cancel.dataset.asking === '1') { window.slopSureReset(cancel); return; }
+    window.slopSure(cancel);
     return;
   }
   const unqueue = e.target.closest('[data-unqueue]');
   if (unqueue) {
-    const yes = await window.slopConfirm('Remove from the playback queue?', 'It will leave the on-screen queue and will not play unless re-queued.', 'Remove');
-    if (yes) unqueue.closest('.item').remove();
+    const yes = e.target.closest('[data-yes]');
+    const no = e.target.closest('[data-no]');
+    if (yes) {
+      window.slopSureReset(unqueue);
+      hiddenPlay.add(unqueue.dataset.unqueue);
+      render(last);
+      return;
+    }
+    if (no || unqueue.dataset.asking === '1') { window.slopSureReset(unqueue); return; }
+    window.slopSure(unqueue);
     return;
   }
   const b = e.target.closest('[data-play]');

@@ -733,8 +733,8 @@
   });
   syncCmdFields();
 
-  // destructive actions confirm first
-  grid.addEventListener('click', async (e) => {
+  // destructive actions: the quick inline "sure?" (the shared helper)
+  grid.addEventListener('click', (e) => {
     const glass = e.target.closest('.glass');
     if (glass) {
       // the quick inline "sure?" — no modal. First click asks (auto-reverts
@@ -760,9 +760,19 @@
     const gear = e.target.closest('[data-gear]');
     if (gear) { openSlopSettings(gear.dataset.gear); return; }
     const del = e.target.closest('[data-del]');
-    if (!del) return;
-    const yes = await window.slopConfirm('Delete this slop?', `"${del.dataset.del}" will be removed from your registry. This cannot be undone.`, 'Delete');
-    if (yes) del.closest('.slop-card').remove();
+    if (del) {
+      const yes = e.target.closest('[data-yes]');
+      const no = e.target.closest('[data-no]');
+      if (yes) {
+        window.slopSureReset(del);
+        const i = PLACEHOLDER_SLOPS.findIndex((s) => s.title === del.dataset.del);
+        if (i >= 0) PLACEHOLDER_SLOPS.splice(i, 1); // remove from the data, not just the DOM
+        renderSlops();
+        return;
+      }
+      if (no || del.dataset.asking === '1') { window.slopSureReset(del); return; }
+      window.slopSure(del);
+    }
   });
   document.getElementById('settings-reset').addEventListener('click', async () => {
     const yes = await window.slopConfirm('Reset all settings?', 'Every setting on this page returns to its default. Saved slops and triggers are untouched.', 'Reset');

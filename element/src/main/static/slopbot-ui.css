@@ -89,8 +89,13 @@ body::before {
 .pill.pending  { background: rgba(255, 200, 87, .15); color: var(--warn); }
 .pill.rejected { background: rgba(255, 77, 179, .18); color: var(--pink-soft); }
 
-/* ---- confirm modal (destructive actions) ---- */
-.confirm-backdrop {
+/* ---- the quick inline "sure?" (destructive buttons) ---- */
+.sure-ask { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; font-size: .8rem; font-weight: 700; color: var(--muted); }
+.sure-ask b { cursor: pointer; padding: .15rem .7rem; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; font-size: .78rem; color: var(--muted); }
+.sure-ask b:hover { color: #fff; }
+.sure-ask [data-yes] { color: #fff; border-color: var(--pink); background: rgba(255, 0, 153, .3); }
+
+/* ---- confirm modal (destructive actions) ---- */.confirm-backdrop {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(4, 7, 22, .7);
   display: grid; place-items: center;
