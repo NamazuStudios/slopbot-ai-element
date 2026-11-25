@@ -14,12 +14,19 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { background: var(--deep); }
 body {
   margin: 0;
-  background: radial-gradient(1200px 600px at 70% -10%, #1a2150 0%, var(--navy) 45%, var(--deep) 100%);
   color: var(--text);
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 15px;
+}
+/* The backdrop lives on a FIXED layer: it never scrolls with content and
+   never tiles/repeats when a page grows past the viewport. */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background: radial-gradient(1200px 600px at 70% -10%, #1a2150 0%, var(--navy) 45%, var(--deep) 100%);
 }
 .logo { font-weight: 800; letter-spacing: .02em; }
 .logo em { color: var(--pink); font-style: normal; }

@@ -6,11 +6,11 @@
 <title>slopbot.gg — Dashboard</title>
 <link rel="stylesheet" href="slopbot-ui.css">
 <style>
-  body { display: flex; }
+  body { display: flex; overflow: hidden; }
 
   /* ---- left drawer ---- */
   aside {
-    width: 240px; min-width: 240px;
+    width: 240px; min-width: 240px; height: 100vh;
     background: rgba(7, 11, 34, .75);
     border-right: 1px solid var(--line);
     display: flex; flex-direction: column;
@@ -37,7 +37,10 @@
   .collapse-btn { margin-top: auto; }
   .out-arrow { margin-left: auto; }
 
-  main { flex: 1; padding: 1.6rem 2rem; min-width: 0; }
+  main { flex: 1; height: 100vh; overflow-y: auto; padding: 1.6rem 2rem; min-width: 0; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  main::-webkit-scrollbar { width: 10px; }
+  main::-webkit-scrollbar-track { background: transparent; }
+  main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
   .page-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.2rem; }
   .page-head h1 { font-size: 1.4rem; margin: 0; }
   .page-head .who { display: flex; align-items: center; gap: .6rem; color: var(--muted); font-size: .9rem; }
@@ -66,8 +69,8 @@
      control right), the same vertical rhythm. Expandable cards
      open a body region INSIDE the card, so the rows never shift.
      ========================================================= */
-  .settings { max-width: 760px; display: flex; flex-direction: column; gap: .75rem; }
-  .set-card { padding: .85rem 1.1rem; }
+  .settings { max-width: 760px; display: flex; flex-direction: column; gap: .5rem; }
+  .set-card { padding: 1rem 1.1rem; }
   .set-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
   .set-row .lab b { display: block; font-size: .95rem; }
   .set-row .lab span { color: var(--muted); font-size: .82rem; }
@@ -103,9 +106,10 @@
   }
 
   /* chat command rows — identical for both commands */
-  .cmd-input { display: flex; align-items: center; gap: .1rem; }
+  .cmd-input { display: flex; align-items: center; gap: .1rem; transition: opacity .15s; }
   .cmd-input > b { color: var(--pink-soft); font-size: 1.05rem; padding-right: .15rem; }
   .cmd-input input { width: 130px; }
+  .cmd-input.off { opacity: .4; }
 
   /* cam picker */
   .cam-stage {
@@ -205,7 +209,7 @@ export function frame(ctx, t, dt) {}</textarea>
   <section class="pane" id="pane-settings">
     <div class="settings">
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Default generation model</b><span>The Hyper model every build runs on</span></div>
           <div class="set-ctl">
@@ -223,21 +227,27 @@ export function frame(ctx, t, dt) {}</textarea>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Generate command</b><span>Chat command that starts a build for a new slop</span></div>
-          <div class="set-ctl cmd-input"><b>!</b><input class="set-input" id="gen-prefix" value="slopbuild" spellcheck="false" autocomplete="off"></div>
+          <div class="set-ctl">
+            <button class="toggle on" aria-label="generate command enabled"></button>
+            <div class="cmd-input"><b>!</b><input class="set-input" id="gen-prefix" value="slopbuild" spellcheck="false" autocomplete="off"></div>
+          </div>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Playback command</b><span>Chat command that plays and searches your existing slops</span></div>
-          <div class="set-ctl cmd-input"><b>!</b><input class="set-input" id="play-prefix" value="slop" spellcheck="false" autocomplete="off"></div>
+          <div class="set-ctl">
+            <button class="toggle on" aria-label="playback command enabled"></button>
+            <div class="cmd-input"><b>!</b><input class="set-input" id="play-prefix" value="slop" spellcheck="false" autocomplete="off"></div>
+          </div>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Moderation level</b><span id="mod-note">Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.</span></div>
           <div class="set-ctl">
@@ -257,7 +267,7 @@ export function frame(ctx, t, dt) {}</textarea>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Additional agent instructions</b><span>Passed to the agent on every build</span></div>
           <div class="set-ctl"><span class="expander" data-target="agent-instructions">＋ add</span></div>
@@ -268,28 +278,28 @@ export function frame(ctx, t, dt) {}</textarea>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div>
           <div class="set-ctl"><button class="toggle on" aria-label="announce plays"></button></div>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Max slop seconds</b><span>The hard ceiling per play</span></div>
           <div class="set-ctl"><input class="set-input num" value="60" inputmode="numeric"></div>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div>
           <div class="set-ctl"><input class="set-input num" value="10" inputmode="numeric"></div>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Streamer cam</b><span>Where your camera sits on the canvas — drag to place, corner to resize</span></div>
         </div>
@@ -414,6 +424,18 @@ export function frame(ctx, t, dt) {}</textarea>
   // plain toggles
   document.querySelectorAll('.settings .toggle').forEach((t) => {
     t.addEventListener('click', () => t.classList.toggle('on'));
+  });
+
+  // the command toggles also dim + disable their prefix input when off
+  document.querySelectorAll('.cmd-input').forEach((ci) => {
+    const t = ci.closest('.set-ctl').querySelector('.toggle');
+    const sync = () => {
+      const on = t.classList.contains('on');
+      ci.classList.toggle('off', !on);
+      ci.querySelector('input').disabled = !on;
+    };
+    t.addEventListener('click', sync); // runs after the plain flip (registration order)
+    sync();
   });
 
   // destructive actions confirm first
