@@ -126,8 +126,12 @@
     </properties>
 
     <build>
-        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-        <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
+        <!--
+        No <sourceDirectory> override: the default src/main/java must stay the
+        JAVA compiler's source (package-info.java — the element definition —
+        lives there and MUST compile into the .elm). The Kotlin compiler takes
+        its dirs from the kotlin-maven-plugin's <sourceDirs> below.
+        -->
         <plugins>
 
             <plugin>
@@ -161,9 +165,18 @@
             package-info.java is required for package-level annotations such as @ElementDefinition,
             which use ElementType.PACKAGE — a target that Kotlin does not natively support.
             -->
+            <!--
+            Compiles Java sources (package-info.java — the @ElementDefinition
+            element definition, a PACKAGE-target annotation Kotlin cannot
+            carry) AFTER Kotlin compilation: default-compile is disabled and
+            this execution runs in the same phase, after the kotlin plugin
+            (pom order = execution order), so javac sees Kotlin's output.
+            This is the fake-the-music-server element's exact recipe.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
@@ -177,11 +190,6 @@
                         <id>java-compile</id>
                         <phase>compile</phase>
                         <goals><goal>compile</goal></goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                            </sourceDirs>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

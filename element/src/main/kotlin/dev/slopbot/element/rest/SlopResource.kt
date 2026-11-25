@@ -45,7 +45,6 @@ class SlopResource {
     // --- open (overlay) routes -----------------------------------------------------
 
     @GET
-    @Path("/slop")
     fun snapshot(@QueryParam("streamer") streamer: String?): Response =
         Response.ok(engine.snapshotMap()).build()
 

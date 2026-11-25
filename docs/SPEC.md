@@ -204,3 +204,87 @@ The superuser asset-admin surface, implemented on top of the first pass (all 164
 - `LargeObjectDao` integration for CDN-backed asset reads (the MCP `assets.read` returns the large-object id; the fetch path is wired once the platform's Large Object API is bound into the element).
 - Durable first-ever tracking and the config persistence (currently in-process; a `slop_config` collection would match the reference's merged-write semantics).
 - The moderation build queue consumes MCP clients (the agent polls/creates via MCP); the deck's `generation` slot is ELM-side state.
+
+### Element-loading semantics on 3.9.0-rc-9 — the two bugs found live (2026-11-25)
+
+The element deployed CLEAN but every REST request 500'd with
+`SdkServiceNotFoundException`. Two independent root causes, both element-side,
+both fixed here; recorded because the failure modes are invisible until they
+bite and the platform gives no load-time warning for either.
+
+#### 1. Element-local services must be declared `@ElementService` AND `expose()`d
+
+Resources resolve services through the SDK `ServiceLocator`
+(`Element.getServiceLocator().getInstance(...)`). On 3.9.0-rc-9 that resolves
+via `GuiceServiceLocator.findInstance` →
+`elementInjector.getExistingBinding(key)` — **the element injector's TOP
+level**. A key bound only inside the `@GuiceElementModule` `PrivateModule`
+(even with the module's own `expose()`) never reaches that top level: the
+loader's `GuiceSpiModule` lifts keys upward **only** for services declared in
+the element record, i.e. `@ElementService` on `package-info.java` (or
+`@ElementServiceImplementation`/`@ElementServiceExport` on a class).
+
+The pair is required — either half alone fails:
+
+- declared but not `expose()`d by the module → the loader's parent-fallback
+  path throws `SdkException` **at load time** ("no Element in the parent
+  registry provides it").
+- bound+exposed in the module but not declared → loads CLEAN, then **every
+  request** throws `SdkServiceNotFoundException` (our live symptom: the
+  platform filter chain logged
+  `HttpServletAuthenticationFilter - Caught exception processing security
+  credentials` wrapping the `SdkServiceNotFoundException` from the element's
+  own resource — the filter frames in that stack are innocent passthroughs,
+  `chain.doFilter` only; read the `Caused by` for the real thrower).
+
+Fixed in `package-info.java` (11 `@ElementService` declarations) +
+`SlopModule` (`expose()` for the same 11 keys).
+
+Also borrowed from fake-the-music's `package-info` while there: the element
+classloader **default-denies base-classloader packages**, so runtime-riding
+packages the element's own code references must be requested explicitly —
+`@ElementPackageRequest("java.net.http")` (live-proven: without it the first
+MCP POST dies in `OidcValidator.<clinit>` with
+`NoClassDefFoundError: java/net/http/HttpClient`) and
+`@ElementPackageRequest("com.fasterxml.jackson.databind")` (Jackson rides the
+runtime; a bundled copy would conflict).
+
+#### 2. Never construct request-scoped platform services eagerly
+
+`SlopAuth` (the session-auth gate) injects the platform `UserService`, which
+is **request-scoped** — the platform resolves the acting User against the
+current `ElementScope`. An `asEagerSingleton()` binding for it breaks in both
+directions, observed live:
+
+- **Fresh boot** (element loads outside any request — JVM restart with the
+  deployment persisted): the eager `UserService` resolution throws
+  `IllegalStateException` ("Not in scope.") and the element fails to load
+  entirely (Guice `ErrorInCustomProvider` at `ScopedServicesModule` while
+  locating `UserService`) — REST 404s until a re-load happens inside a
+  request.
+- **Load inside a request** (every load triggered by a deployment PUT — the
+  normal flow): the resolution succeeds against *that request's* auth scope
+  and the frozen identity is baked into the singleton forever. If the loading
+  caller was an admin (it is — deployments are PUT by an admin session), the
+  gate then treats **every anonymous request as that admin**:
+  `requireSuperuser` passed for unauthenticated calls (confirmed via the
+  element's audit rows: actor `admin-…` on an anonymous suspend). This is a
+  security hole, not a quirk.
+
+Fix: `SlopAuth` is bound **without** `asEagerSingleton()` — resolved lazily
+through the ServiceLocator per request, so each request constructs it inside
+its own scope. Rule for this element: a binding may be eager **only if its
+dependency graph touches no request-scoped platform service** (`UserService`,
+`SessionService`, `ProfileService`, …). Everything else resolves at request
+time.
+
+#### Verification (live, temporary instance, Elements 3.9.0-rc-9)
+
+- `GET /slop/api/slop` → **200** (snapshot JSON).
+- `POST /slop/api/mcp` anonymous → **401** `{"error":"authentication required"}`
+  (fail-closed; was 500).
+- `GET /slop/api/admin/slop/queues` anonymous → **401** (was 200 as the
+  loading admin — hole closed); with the admin session → **200**.
+- Fresh `kill 1` restart of the instance's `ws` container → deployment loads
+  CLEAN on boot (was `FAILED`/`IllegalStateException`) and all three probes
+  above hold before any authenticated request.
