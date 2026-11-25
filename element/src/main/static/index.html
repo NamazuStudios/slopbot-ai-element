@@ -7,8 +7,8 @@
 <style>
   :root {
     --navy: #0d1335;
-    --pink: #ff0099;
     --deep: #070b22;
+    --pink: #ff0099;
   }
   * { box-sizing: border-box; }
   body {
@@ -28,8 +28,7 @@
   }
   .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: .02em; }
   .logo em { color: var(--pink); font-style: normal; }
-  nav a { color: #c9d0f5; text-decoration: none; margin-left: 1.5rem; font-size: .95rem; }
-  nav a:hover { color: #fff; }
+  .tag { color: #9aa3d0; font-size: .85rem; }
   main {
     flex: 1;
     display: grid;
@@ -39,49 +38,45 @@
   }
   h1 { font-size: clamp(2.2rem, 6vw, 4rem); margin: 0 0 .5rem; line-height: 1.1; }
   h1 em { color: var(--pink); font-style: normal; }
-  p.tag { color: #c9d0f5; font-size: 1.15rem; max-width: 42rem; margin: 0 auto 2.5rem; line-height: 1.6; }
-  a.login {
-    display: inline-block;
-    background: var(--pink);
+  p.lede { color: #c9d0f5; max-width: 34rem; margin: 0 auto 2rem; font-size: 1.05rem; line-height: 1.5; }
+  .cta {
+    appearance: none;
+    border: 0;
+    border-radius: 12px;
+    padding: .9rem 2.2rem;
+    font-size: 1.05rem;
+    font-weight: 800;
     color: #fff;
-    font-weight: 700;
-    font-size: 1.1rem;
-    padding: .9rem 2.4rem;
-    border-radius: .6rem;
-    text-decoration: none;
-    box-shadow: 0 8px 30px rgba(255, 0, 153, .35);
-    transition: transform .12s ease, box-shadow .12s ease;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--pink) 0%, #c4007a 100%);
+    box-shadow: 0 10px 30px rgba(255, 0, 153, .35);
   }
-  a.login:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(255, 0, 153, .45); }
-  .note { margin-top: 1.2rem; color: #8a93c9; font-size: .9rem; }
-  footer { padding: 1.2rem 2rem; color: #8a93c9; font-size: .85rem; display: flex; justify-content: space-between; }
-  footer a { color: #c9d0f5; }
+  .cta:hover { filter: brightness(1.1); }
+  .fine { margin-top: 1rem; color: #6d76a8; font-size: .8rem; }
+  footer { padding: 1rem 2rem; color: #6d76a8; font-size: .8rem; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
 <header>
   <div class="logo">SlopBot <em>AI</em></div>
-  <nav>
-    <a href="/deck">Deck</a>
-    <a href="/slop">Overlay</a>
-  </nav>
+  <div class="tag">the slop engine as a service</div>
 </header>
 <main>
   <div>
-    <h1>Your chat builds the <em>slop</em>.<br>Your stream plays it.</h1>
-    <p class="tag">Viewers prompt an AI agent from chat, the agent codes a live
-    canvas slop in seconds, and it plays on your stream — with triggers,
-    cooldowns, a queue, and a deck you control. Log in with Twitch to open
-    your slop registry.</p>
-    <!-- Real Twitch OAuth login (ticket 02), per the Elements manual's
-         browser-redirect flow. The marketing landing page comes later. -->
-    <a class="login" href="/auth/login">Log in with Twitch</a>
-    <p class="note">Marketing landing page to come — this is the working door.</p>
+    <h1>Your chat writes <em>slops</em>.<br>You take the credit.</h1>
+    <p class="lede">Viewers prompt it. The agent builds a one-shot micro-cartoon live on your overlay in seconds. Moderated before it airs — always.</p>
+    <!--
+      Demo bypass: the real flow initiates Twitch OIDC login here and lands on
+      the dashboard only for a signed-in streamer. For this look-and-feel pass
+      the button goes straight to the dashboard with placeholder data.
+    -->
+    <button class="cta" onclick="location.href='dashboard.html'">Login with Twitch</button>
+    <div class="fine">Demo mode — login bypassed, placeholder data ahead.</div>
   </div>
 </main>
 <footer>
-  <span>SlopBot AI</span>
-  <span><a href="/deck">deck</a> · <a href="/slop">overlay</a></span>
+  <span>© Namazu Studios</span>
+  <span>pink #ff0099 · navy #0d1335</span>
 </footer>
 </body>
 </html>

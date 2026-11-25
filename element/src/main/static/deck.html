@@ -1,298 +1,97 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SlopBot AI — deck</title>
-  <link rel="stylesheet" href="deck.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck — SlopBot AI</title>
+<link rel="stylesheet" href="slopbot-ui.css">
+<style>
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .8rem 1.2rem;
+    border-bottom: 1px solid var(--line);
+    background: rgba(7, 11, 34, .6);
+  }
+  header .left { display: flex; align-items: center; gap: .8rem; }
+  header .logo { font-size: 1rem; }
+  header .hint { color: var(--muted); font-size: .8rem; }
+  header .right { display: flex; gap: .5rem; align-items: center; }
+  header .back { color: var(--muted); text-decoration: none; font-size: .85rem; }
+  header .back:hover { color: #fff; }
+
+  /* The deck grid: registry left (full height); right column = generation
+     queue on top, playback queue below. */
+  .deck-grid {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: .9rem;
+    padding: .9rem 1.2rem 1.2rem;
+  }
+  .deck-grid .card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  #pane-registry { grid-row: 1 / 3; }
+
+  .list { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: .55rem; padding-right: .2rem; }
+  .item {
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: .55rem .7rem;
+    background: rgba(10, 15, 44, .55);
+    display: flex; align-items: center; gap: .7rem;
+  }
+  .item .t { flex: 1; min-width: 0; }
+  .item .t b { display: block; font-size: .93rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .t span { color: var(--muted); font-size: .78rem; }
+  .item .act { flex: none; }
+  .item button {
+    border: 0; border-radius: 8px; padding: .35rem .8rem; font-weight: 700; font-size: .8rem;
+    background: rgba(255, 0, 153, .18); color: var(--pink-soft); cursor: pointer;
+  }
+  .item button:hover { background: rgba(255, 0, 153, .3); color: #fff; }
+  .item .st { font-size: .72rem; }
+  .empty { color: #6d76a8; font-size: .85rem; padding: 1rem .2rem; text-align: center; }
+  .badge {
+    flex: none; min-width: 22px; height: 22px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--line); color: var(--muted); font-size: .75rem; font-weight: 700;
+  }
+  .gen .item { border-color: rgba(255, 200, 87, .25); }
+  .gen .item .st { color: var(--warn); }
+  .count { color: var(--muted); font-size: .8rem; }
+</style>
 </head>
 <body>
-  <div id="deck">
-    <header>
-      <h1>Stream Deck</h1>
-      <div id="auth-status">
-        <span id="auth-user" hidden></span>
-        <a id="auth-login" href="/auth/login" hidden>Log in with Twitch</a>
-        <a id="auth-logout" href="/auth/logout" hidden>Log out</a>
-      </div>
-      <div id="twitch-status">
-        <span class="dot" id="twitch-dot"></span>
-        <span id="twitch-text">twitch: checking…</span>
-        <a id="twitch-connect" href="/auth/twitch" target="_blank" rel="noopener" hidden>Connect</a>
-      </div>
-    </header>
+<header>
+  <div class="left">
+    <div class="logo">SlopBot <em>AI</em> · deck</div>
+    <span class="chip"><span class="dot"></span> live</span>
+    <span class="hint" id="conn-hint">on-screen · keep this tab on the capture</span>
+  </div>
+  <div class="right">
+    <span class="count" id="counts"></span>
+    <a class="back" href="dashboard.html">← dashboard</a>
+  </div>
+</header>
 
-    <section id="primary-section" aria-label="Quick controls">
-      <div id="primary-buttons" class="buttons"></div>
-    </section>
+<main class="deck-grid">
+  <section class="card" id="pane-registry">
+    <h3>Slop Registry <span class="count" id="reg-count"></span></h3>
+    <div class="list" id="registry-list"></div>
+  </section>
 
-    <div id="secondary">
-      <div id="controls-group">
-      <section id="scenes-section">
-        <h2>Scenes
-          <span id="obs-status">
-            <button type="button" class="dot" id="obs-reconnect" title="Force reconnect to OBS" aria-label="Force reconnect to OBS"></button>
-            <span id="obs-status-text">connecting…</span>
-          </span>
-          <span class="reg-tools">
-            <button type="button" class="iconbtn" id="obs-settings" title="OBS connection settings">⚙</button>
-          </span>
-        </h2>
-        <div id="scene-buttons" class="buttons"></div>
-      </section>
+  <section class="card gen" id="pane-generation">
+    <h3>Generation Queue <span class="count" id="gen-count"></span></h3>
+    <div class="list" id="generation-list"></div>
+  </section>
 
-      <div id="obs-settings-modal" class="modal" hidden>
-        <div class="modal-panel">
-          <div class="modal-head"><span>OBS connection</span><button type="button" class="modal-close" id="obs-settings-close">✕</button></div>
-          <form id="obs-settings-form" class="modal-body">
-            <label class="field check">
-              <input type="checkbox" id="obs-enabled">
-              <span>Connect to OBS</span>
-            </label>
-            <label class="field">
-              <span>OBS WebSocket server</span>
-              <input id="obs-host-input" autocomplete="off" spellcheck="false" placeholder="localhost">
-            </label>
-            <label class="field">
-              <span>Port</span>
-              <input id="obs-port-input" inputmode="numeric" autocomplete="off" placeholder="4455">
-            </label>
-            <label class="field">
-              <span>OBS WebSocket password</span>
-              <input id="obs-password" type="password" autocomplete="off" placeholder="leave empty if none">
-            </label>
-            <div class="field">
-              <span>Connection state</span>
-              <div id="obs-state-line"><span class="dot" id="obs-state-dot"></span><span id="obs-state-text">…</span></div>
-            </div>
-            <div class="field">
-              <span>Connection history — last 20</span>
-              <ol id="obs-history-list"></ol>
-            </div>
-            <div class="modal-help">
-              <b>offline</b> — OBS isn't running, or its WebSocket server is off (OBS → Tools → WebSocket Server Settings).<br>
-              <b>password?</b> — the server requires the password set there.<br>
-              <b>disabled</b> — the "Connect to OBS" switch above is off.<br>
-              The dot in the header force-reconnects on click.
-            </div>
-            <div class="modal-actions">
-              <button type="button" id="obs-reconnect-now">Reconnect now</button>
-              <button type="submit">Save</button>
-            </div>
-          </form>
-        </div>
-      </div>
+  <section class="card" id="pane-playback">
+    <h3>Playback Queue <span class="count" id="play-count"></span></h3>
+    <div class="list" id="playback-list"></div>
+  </section>
+</main>
 
-      <section id="timer-section">
-        <h2>Starting Soon Timer</h2>
-        <form id="timer-form">
-          <input id="timer-input" placeholder="10:00" autocomplete="off" inputmode="numeric" spellcheck="false">
-          <button type="submit">Start</button>
-          <button type="button" id="timer-stop">Stop</button>
-        </form>
-        <div id="timer-status">no timer running</div>
-      </section>
-
-      <section id="sources-section">
-        <h2>Sources</h2>
-        <div id="toggle-buttons" class="buttons"></div>
-      </section>
-
-      <section id="stinger-section">
-        <h2>Stinger</h2>
-        <div class="buttons">
-          <button type="button" id="stinger-auto" class="toggle on">Auto — ON</button>
-          <button type="button" id="stinger-test">Fire test wipe</button>
-        </div>
-      </section>
-      </div>
-
-      <section id="slop-controls-section">
-        <h2>Slop registry
-          <span class="reg-tools">
-            <button type="button" class="iconbtn" id="slop-add" title="Build a new slop">+</button>
-            <button type="button" class="iconbtn" id="slop-settings" title="Slop settings">⚙</button>
-          </span>
-        </h2>
-        <form id="slop-search-form">
-          <input id="slop-search" autocomplete="off" spellcheck="false" placeholder="search slops">
-          <button type="button" id="slop-search-clear" hidden title="Clear search">✕</button>
-        </form>
-        <div id="slop-preview" hidden>
-          <div id="slop-preview-panel">
-            <div id="slop-preview-head">
-              <span id="slop-preview-title">Preview</span>
-              <button type="button" class="decide go" id="slop-preview-approve" hidden>✓ Approve</button>
-              <button type="button" class="decide stop" id="slop-preview-reject" hidden>✕ Reject</button>
-              <button type="button" class="decide stop" id="slop-preview-delete" hidden>✕ Delete forever</button>
-              <button type="button" id="slop-preview-close">✕ Close</button>
-            </div>
-            <div id="slop-preview-stage"></div>
-            <div id="slop-preview-controls" hidden></div>
-            <div id="slop-preview-chat">
-              <div id="slop-preview-quick"></div>
-              <input id="slop-preview-chat-input" autocomplete="off" spellcheck="false" placeholder="type as chat — Enter sends (also tests chat triggers)">
-            </div>
-            <div id="slop-preview-triggers">
-              <div class="spt-head">
-                <span class="spt-title">⚡ Triggers</span>
-                <label class="spt-field" id="spt-cooldown-field" title="While cooling down, no trigger can queue this slop (manual plays always work). The window arms when it plays via a trigger and lasts this many seconds — 0 = never cools down">
-                  <span>cool down</span>
-                  <input type="number" id="spt-cooldown" min="0" max="86400" step="1">
-                </label>
-                <select id="spt-add-type" title="Add a trigger">
-                  <option value="">add trigger…</option>
-                  <option value="chat">chat line</option>
-                  <option value="firstchat">first-time chatter</option>
-                  <option value="follow">follow</option>
-                  <option value="firstfollow">first-time follower</option>
-                  <option value="sub">new sub</option>
-                  <option value="resub">resub</option>
-                  <option value="subgift">sub gift</option>
-                  <option value="raid">raid</option>
-                  <option value="cheer">cheer</option>
-                  <option value="redemption">channel points redeem</option>
-                </select>
-                <button type="button" id="spt-save" class="spt-save" title="Save this slop's triggers (server validates them)">save</button>
-              </div>
-              <label class="spt-row spt-slopcommand" id="spt-slopcommand-row" title="The !slop search only sees slops with this on — turning it off removes this slop from the !slop roster entirely (default: on for everything)">
-                <input type="checkbox" id="spt-slopcommand">
-                <span class="spt-type">!slop command</span>
-                <span class="spt-criteria"><span class="spt-desc">adds this slop to the !slop roster — searchable and playable with !slop &lt;name&gt;</span></span>
-              </label>
-              <div id="spt-list"></div>
-              <p class="spt-hint">matching slops are picked at random when an event hits several — triggers queue like !slop</p>
-            </div>
-          </div>
-        </div>
-        <div id="slop-modstatus" title="Current content moderation tier — change it in ⚙ settings"></div>
-        <div id="slop-registry"></div>
-        <div id="slop-count"></div>
-        <div id="slop-connwarn"></div>
-
-        <div id="slop-add-modal" class="modal" hidden>
-          <div class="modal-panel">
-            <div class="modal-head"><span>Build a slop</span><button type="button" class="modal-close" id="slop-add-close">✕</button></div>
-            <form id="slop-add-form" class="modal-body">
-              <label class="field">
-                <span>Describe it — the AI builds it</span>
-                <textarea id="slop-add-input" rows="3" autocomplete="off" spellcheck="false"></textarea>
-              </label>
-              <label class="field">
-                <span>Build model — override for this build (optional)</span>
-                <select id="slop-add-model"></select>
-              </label>
-              <p id="slop-add-error" class="modal-error" hidden></p>
-              <div class="modal-actions">
-                <button type="submit">Build</button>
-                <button type="button" id="slop-add-cancel">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div id="slop-settings-modal" class="modal" hidden>
-          <div class="modal-panel">
-            <div class="modal-head"><span>Slop settings</span><button type="button" class="modal-close" id="slop-settings-close">✕</button></div>
-            <form id="slop-settings-form" class="modal-body">
-              <label class="field">
-                <span>Channel point redeem title — exactly as it appears on Twitch</span>
-                <input id="slop-redeem-title-input" autocomplete="off" spellcheck="false" placeholder="redeem title">
-              </label>
-              <label class="field">
-                <span>Build model — the AI that writes the slops</span>
-                <select id="slop-model-select"></select>
-              </label>
-              <label class="field">
-                <span>Content moderation</span>
-                <select id="slop-moderation">
-                  <option value="kid">Kid Friendly</option>
-                  <option value="teen">Teen / Young Adult</option>
-                  <option value="adult">Adult</option>
-                  <option value="anything">Anything Goes</option>
-                </select>
-              </label>
-              <p id="slop-moderation-note"></p>
-              <div class="field">
-                <span>Trigger flood cap — how many trigger events may start slops per minute (protects against a sub train stacking the queue). Extra events are dropped, with a note on the overlay when it happens.</span>
-                <input id="slop-floodcap" type="number" min="1" max="30" step="1" autocomplete="off">
-              </div>
-              <div class="field">
-                <span>Streamer cam — where your camera sits on the 16:9 canvas. Global: every slop reads it as ctx.streamer. The stream behind is your live Twitch embed (muted).</span>
-                <div id="cam-editor">
-                  <div id="spt-cam-frame" title="The 16:9 slop canvas — your stream plays beneath the placement overlay">
-                    <iframe id="spt-cam-embed" title="Your Twitch stream (muted)" hidden></iframe>
-                    <span class="spt-cam-label">SLOP CANVAS · 16:9</span>
-                    <div id="spt-cam-box" title="Your camera on the stream — drag to move, drag the corner grip to resize">
-                      <svg viewBox="0 0 100 80" aria-hidden="true">
-                        <circle cx="50" cy="26" r="17" fill="currentColor"></circle>
-                        <path d="M13 80 C13 55 32 46 50 46 C68 46 87 55 87 80 Z" fill="currentColor"></path>
-                      </svg>
-                      <div id="spt-cam-grip" title="Drag to resize"></div>
-                    </div>
-                  </div>
-                  <p class="spt-hint" id="spt-cam-hint">drag the bust to where your camera sits on the stream — slops read it as ctx.streamer (x, y, w, h — 0–1 of the canvas). Saved with the dialog's Save.</p>
-                </div>
-              </div>
-              <details id="slop-advanced">
-                <summary>Advanced</summary>
-                <label class="field">
-                  <span>Custom moderation / prompt rules</span>
-                  <textarea id="slop-custom-rules" rows="4" autocomplete="off" spellcheck="false" placeholder="extra moderation bounds the agent follows when evaluating prompts"></textarea>
-                </label>
-                <label class="field">
-                  <span>Additional agent instructions</span>
-                  <textarea id="slop-agent-instructions" rows="4" autocomplete="off" spellcheck="false" placeholder="free-form instructions for the agent — style, narration, anything"></textarea>
-                </label>
-                <div class="field">
-                  <span>Trigger allow-list — which trigger types may fire slops. Creator-proposed triggers outside this list are held until you enable them on the slop; anything you set yourself always works.</span>
-                  <div id="slop-allowed-triggers"></div>
-                </div>
-              </details>
-              <div class="modal-actions">
-                <button type="submit">Save</button>
-                <button type="button" id="slop-settings-cancel">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div id="slop-info-modal" class="modal" hidden>
-          <div class="modal-panel">
-            <div class="modal-head"><span>About this slop</span><button type="button" class="modal-close" id="slop-info-close">✕</button></div>
-            <div id="slop-info-body" class="modal-body"></div>
-          </div>
-        </div>
-
-        <div id="slop-cancel-modal" class="modal" hidden>
-          <div class="modal-panel">
-            <div class="modal-head"><span>Cancel build</span><button type="button" class="modal-close" id="slop-cancel-close">✕</button></div>
-            <div class="modal-body">
-              <p id="slop-cancel-prompt" class="cancel-prompt"></p>
-              <p id="slop-cancel-status" class="modal-help"></p>
-              <div class="modal-actions">
-                <button type="button" class="decide stop" id="slop-cancel-confirm">✕ Cancel build</button>
-                <button type="button" id="slop-cancel-keep">Keep building</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      </div>
-
-      <section id="slop-section">
-      <h2>Slop queue <button type="button" class="light stop" id="slop-playpause" title="Playback stopped — click to resume"></button></h2>
-      <div id="slop-playlist"></div>
-      <div id="slop-queue" class="slop-queue"><p class="empty">no slops waiting for review</p></div>
-    </section>
-
-    <section id="chat-section">
-      <h2>Chat</h2>
-      <div id="chat"></div>
-    </section>
-
-    <button type="button" id="menu-toggle" aria-expanded="false">More — scenes · timer · stinger ▾</button>
-  <script src="deck-error.js"></script>
-  <script type="module" src="deck.js"></script>
+<script src="deck-lite.js"></script>
 </body>
 </html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — SlopBot AI</title>
+<link rel="stylesheet" href="slopbot-ui.css">
+<style>
+  body { display: flex; }
+
+  /* ---- left drawer ---- */
+  aside {
+    width: 240px;
+    min-width: 240px;
+    background: rgba(7, 11, 34, .75);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem .8rem;
+    transition: width .18s ease, min-width .18s ease;
+    min-height: 100vh;
+  }
+  aside.collapsed { width: 64px; min-width: 64px; }
+  aside .logo { padding: .4rem .6rem 1.2rem; font-size: 1.05rem; white-space: nowrap; }
+  aside.collapsed .logo span, aside.collapsed .navlabel, aside.collapsed .drawer-head { display: none; }
+  nav { display: flex; flex-direction: column; gap: .25rem; }
+  nav a, nav button {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .6rem .7rem;
+    border-radius: 10px;
+    border: 0; background: transparent;
+    color: var(--muted); font: inherit; font-weight: 600; font-size: .92rem;
+    text-decoration: none; cursor: pointer; text-align: left; width: 100%;
+  }
+  nav a:hover, nav button:hover { background: rgba(255,255,255,.06); color: #fff; }
+  nav .active { background: rgba(255, 0, 153, .16); color: #fff; }
+  nav .ic { width: 20px; text-align: center; flex: none; }
+  .divider { border-top: 1px solid var(--line); margin: .6rem .3rem; }
+  .drawer-head { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: #6d76a8; padding: .8rem .7rem .3rem; }
+  .collapse-btn { margin-top: auto; }
+  .out-arrow { margin-left: auto; }
+
+  main { flex: 1; padding: 1.6rem 2rem; min-width: 0; }
+  .page-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.2rem; }
+  .page-head h1 { font-size: 1.4rem; margin: 0; }
+  .page-head .who { display: flex; align-items: center; gap: .6rem; color: var(--muted); font-size: .9rem; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--pink), #1a2150); }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* slops grid */
+  .slops-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .9rem; }
+  .slop-card h4 { margin: 0 0 .3rem; font-size: 1rem; }
+  .slop-card .by { color: var(--muted); font-size: .8rem; margin-bottom: .6rem; }
+  .slop-card .row { display: flex; align-items: center; justify-content: space-between; }
+
+  /* workshop */
+  .workshop { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; }
+  textarea {
+    width: 100%; min-height: 260px; border-radius: 10px; border: 1px solid var(--line);
+    background: #0a0f2c; color: var(--text); font: 13px/1.5 ui-monospace, monospace; padding: .8rem;
+  }
+  label.f { display: block; margin: .8rem 0 .25rem; color: var(--muted); font-size: .85rem; }
+  input.t {
+    width: 100%; border-radius: 8px; border: 1px solid var(--line);
+    background: #0a0f2c; color: var(--text); padding: .55rem .7rem; font: inherit;
+  }
+
+  /* settings */
+  .settings { max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+  .settings .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .settings .row .lab b { display: block; }
+  .settings .row .lab span { color: var(--muted); font-size: .82rem; }
+  .toggle { width: 44px; height: 24px; border-radius: 999px; background: var(--line); position: relative; border: 0; cursor: pointer; }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .toggle.on { background: var(--pink); }
+  .toggle.on::after { left: 23px; }
+
+  /* account */
+  .account { max-width: 560px; }
+  .profile-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .profile-head .avatar { width: 64px; height: 64px; }
+  .profile-head h2 { margin: 0; font-size: 1.2rem; }
+  .profile-head .sub { color: var(--muted); font-size: .88rem; }
+  .kv { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+</style>
+</head>
+<body>
+<aside id="drawer">
+  <div class="logo">SlopBot <em>AI</em><span> · dashboard</span></div>
+  <div class="drawer-head">Creator tools</div>
+  <nav>
+    <button data-pane="slops" class="active"><span class="ic">🎴</span><span class="navlabel">Slops</span></button>
+    <button data-pane="workshop"><span class="ic">🛠️</span><span class="navlabel">Workshop</span></button>
+    <button data-pane="settings"><span class="ic">⚙️</span><span class="navlabel">Settings</span></button>
+    <button data-pane="account"><span class="ic">👤</span><span class="navlabel">Account</span></button>
+    <div class="divider"></div>
+    <a href="deck.html" target="_blank" rel="opener">
+      <span class="ic">🎛️</span><span class="navlabel">Deck</span><span class="out-arrow">↗</span>
+    </a>
+  </nav>
+  <button class="ghost btn collapse-btn" id="collapse">⟨⟩</button>
+</aside>
+
+<main>
+  <div class="page-head">
+    <h1 id="pane-title">Slops</h1>
+    <div class="who"><div class="avatar"></div><span>Placeholder Streamer</span></div>
+  </div>
+
+  <!-- SLOPS -->
+  <section class="pane active" id="pane-slops">
+    <div class="slops-grid" id="slops-grid"></div>
+  </section>
+
+  <!-- WORKSHOP -->
+  <section class="pane" id="pane-workshop">
+    <div class="workshop">
+      <div class="card">
+        <h3>Author a slop</h3>
+        <label class="f">Prompt</label>
+        <input class="t" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
+        <label class="f">Agent brief (generated from your prompt — editable)</label>
+        <textarea>export const meta = {
+  title: '…',
+  author: 'placeholder',
+};
+export function init(ctx) {}
+export function frame(ctx, t, dt) {}</textarea>
+        <div style="margin-top:.9rem; display:flex; gap:.6rem;">
+          <button class="btn">Send to build</button>
+          <button class="btn ghost">Save draft</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Build queue</h3>
+        <p style="color:var(--muted)">Nothing building. Slops you send land here with live progress.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="pane" id="pane-settings">
+    <div class="settings">
+      <div class="card row"><div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div><button class="toggle on"></button></div>
+      <div class="card row"><div class="lab"><b>Redemption trigger</b><span>Channel-point redemptions can start builds</span></div><button class="toggle on"></button></div>
+      <div class="card row"><div class="lab"><b>Moderation level</b><span>teen · the tier every build is judged against</span></div><span class="chip">teen</span></div>
+      <div class="card row"><div class="lab"><b>Max slop seconds</b><span>The hard ceiling per play</span></div><input class="t" style="width:90px" value="60"></div>
+      <div class="card row"><div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div><input class="t" style="width:90px" value="10"></div>
+      <div class="card row"><div class="lab"><b>Streamer cam</b><span>Where your camera sits on the canvas (0–1)</span></div><input class="t" style="width:180px" value="0.72, 0.55, 0.22, 0.4"></div>
+      <div style="display:flex; gap:.6rem;"><button class="btn">Save settings</button><button class="btn ghost">Reset</button></div>
+    </div>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section class="pane" id="pane-account">
+    <div class="account">
+      <div class="card">
+        <div class="profile-head">
+          <div class="avatar"></div>
+          <div><h2>Placeholder Streamer</h2><div class="sub">twitch.tv/placeholder · connected with Twitch</div></div>
+        </div>
+        <div class="kv">
+          <div class="card"><h3>Channel</h3>placeholderstream</div>
+          <div class="card"><h3>Plan</h3>SlopBot AI — evaluation</div>
+          <div class="card"><h3>Slops owned</h3>4</div>
+          <div class="card"><h3>Member since</h3>Nov 2026</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Demo data — placeholder, per the look-and-feel pass.
+  const PLACEHOLDER_SLOPS = [
+    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12 },
+    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31 },
+    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0 },
+    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2 },
+  ];
+  const grid = document.getElementById('slops-grid');
+  for (const s of PLACEHOLDER_SLOPS) {
+    const el = document.createElement('div');
+    el.className = 'card slop-card';
+    el.innerHTML = `<h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
+      <div class="row"><span class="pill ${s.state}">${s.state}</span><button class="btn ghost" style="padding:.3rem .8rem">Play</button></div>`;
+    grid.appendChild(el);
+  }
+
+  // Drawer + panes
+  const panes = { slops: 'Slops', workshop: 'Workshop', settings: 'Settings', account: 'Account' };
+  document.querySelectorAll('nav [data-pane]').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('nav [data-pane]').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      document.querySelectorAll('.pane').forEach((p) => p.classList.remove('active'));
+      document.getElementById('pane-' + b.dataset.pane).classList.add('active');
+      document.getElementById('pane-title').textContent = panes[b.dataset.pane];
+    });
+  });
+  document.getElementById('collapse').addEventListener('click', () => {
+    document.getElementById('drawer').classList.toggle('collapsed');
+  });
+  document.querySelectorAll('.toggle').forEach((t) => t.addEventListener('click', () => t.classList.toggle('on')));
+</script>
+</body>
+</html>

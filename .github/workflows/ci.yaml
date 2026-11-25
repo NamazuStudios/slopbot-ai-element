@@ -35,3 +35,43 @@ jobs:
           path: element/target/*.elm
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Tag + release .elm
+    needs: build-elm
+    # Every main push gets a tagged GitHub Release carrying the .elm — the
+    # durable, downloadable artifact (the fake-the-music-server pattern). No
+    # more local builds: deployments consume the release.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download the built .elm
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-elm
+          path: dist
+      - name: Compute the release tag
+        id: tag
+        run: echo "tag=deploy-${{ github.run_number }}-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Create + push the tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag ${{ steps.tag.outputs.tag }} already exists — skipping (a rerun)."
+          else
+            git tag -a "${{ steps.tag.outputs.tag }}" -m "SlopBot element build ${{ steps.tag.outputs.tag }}"
+            git push origin "${{ steps.tag.outputs.tag }}"
+          fi
+      - name: Publish the GitHub Release with the .elm
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: SlopBot element ${{ steps.tag.outputs.tag }}
+          files: dist/*.elm
+          fail_on_unmatched_files: true
