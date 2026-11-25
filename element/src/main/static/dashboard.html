@@ -259,6 +259,10 @@
   .spt-row .spt-edit .spt-tier:hover { color: #fff; }
   .spt-row .spt-edit .spt-tier.on { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .14); }
   .spt-list.disabled-list { opacity: .5; }
+  .spt-row .det span.warn { color: var(--warn); }
+  input.err { border-color: #ff5c7a !important; }
+  .spt-save-hint { color: #ff5c7a; font-size: .8rem; margin-top: .6rem; display: none; }
+  .spt-save-hint.show { display: block; }
   .slop-card.is-disabled { opacity: .55; }
   .pill.disabled { background: rgba(154, 163, 208, .15); color: var(--muted); }
 </style>
@@ -839,7 +843,7 @@
       const on = t.tiers && [1, 2, 3].filter((n) => t.tiers[n]);
       return on && on.length ? tierText(t) : 'any tier';
     }
-    if (t.type === 'redemption') return t.reward ? `reward: "${t.reward}"` : 'any reward';
+    if (t.type === 'redemption') return t.reward ? `reward: "${t.reward}"` : '⚠ reward name required';
     return 'any time';
   };
   const tierText = (t) => {
@@ -976,13 +980,19 @@
               edit.appendChild(months);
             }
           } else if (t.type === 'redemption') {
-            edit.innerHTML = `<input class="set-input" data-reward value="${t.reward || ''}" placeholder="reward name — blank = any reward" spellcheck="false">`;
-            edit.querySelector('[data-reward]').addEventListener('input', (e) => { t.reward = e.target.value.trim(); paintRowMeta(row, t); });
+            edit.innerHTML = `<input class="set-input${t.reward ? '' : ' err'}" data-reward value="${t.reward || ''}" placeholder="reward name — required" spellcheck="false">`;
+            edit.querySelector('[data-reward]').addEventListener('input', (e) => {
+              t.reward = e.target.value.trim();
+              e.target.classList.toggle('err', !t.reward);
+              paintRowMeta(row, t);
+            });
           }
           if (edit.childNodes.length) det.parentElement.appendChild(edit);
+          paintRowMeta(row, t);
         }
         function paintRowMeta(row, t) {
           det.textContent = trigDetail(t);
+          det.classList.toggle('warn', t.type === 'redemption' && !t.reward);
         }
         paintDetail();
         row.querySelector('.toggle').addEventListener('click', (e) => {
@@ -1020,8 +1030,27 @@
       modal.querySelector('.scene-title').textContent = `▶ previewing “${title}”`;
     });
 
+    const saveHint = document.createElement('div');
+    saveHint.className = 'spt-save-hint';
+    saveHint.textContent = 'Redemption triggers need a reward name — fill it in or remove them.';
+    modal.querySelector('.btns').before(saveHint);
+    const hint = modal.querySelector('.spt-save-hint');
+
     const done = (save) => {
-      if (save) slop.enabled = enabledBox.checked;
+      if (save) {
+        // a redemption trigger without a reward name can't fire — block the save
+        const unnamed = list.filter((t) => t.type === 'redemption' && t.enabled && !t.reward);
+        if (unnamed.length) {
+          hint.classList.add('show');
+          for (const row of listBox.querySelectorAll('.spt-row[data-id]')) {
+            const t = list.find((x) => x.id === row.dataset.id);
+            const input = row.querySelector('[data-reward]');
+            if (t && input) input.classList.toggle('err', !t.reward);
+          }
+          return; // stay open
+        }
+        slop.enabled = enabledBox.checked;
+      }
       backdrop.remove();
       renderSlops();
     };
