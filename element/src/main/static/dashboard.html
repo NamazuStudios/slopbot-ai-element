@@ -204,7 +204,7 @@
              for THIS build only, so the user can test different settings. -->
         <div class="card set-card ov-card">
           <div class="set-row">
-            <div class="lab"><b>Moderation level</b><span class="ov-state" data-off="off — uses your Settings default (Teen)">off — uses your Settings default (Teen)</span></div>
+            <div class="lab"><b>Moderation level</b><span class="ov-state" data-off='Using "Teen" when off'>Using "Teen" when off</span></div>
             <div class="set-ctl"><button class="toggle" aria-label="moderation override"></button></div>
           </div>
           <div class="set-body">
@@ -228,19 +228,19 @@
 
         <div class="card set-card ov-card">
           <div class="set-row">
-            <div class="lab"><b>Generation model</b><span class="ov-state" data-off="off — uses your Settings default (hyper / prism)">off — uses your Settings default (hyper / prism)</span></div>
+            <div class="lab"><b>Generation model</b><span class="ov-state" data-off='Using "hyper / deepseek" when off'>Using "hyper / deepseek" when off</span></div>
             <div class="set-ctl"><button class="toggle" aria-label="model override"></button></div>
           </div>
           <div class="set-body">
             <label class="f">Model for this build</label>
             <select class="set-input" style="width:240px">
-              <option value="prism" selected>hyper / prism</option>
+              <option value="prism">hyper / prism</option>
               <option value="prism-flash">hyper / prism-flash</option>
               <option value="prism-core">hyper / prism-core</option>
               <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
               <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
               <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
-              <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
+              <option value="deepseek-v4.1-flash" selected>hyper / deepseek-v4.1-flash</option>
               <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
             </select>
           </div>
@@ -248,7 +248,7 @@
 
         <div class="card set-card ov-card">
           <div class="set-row">
-            <div class="lab"><b>Additional agent notes</b><span class="ov-state" data-off="off — builds run with your Settings instructions only">off — builds run with your Settings instructions only</span></div>
+            <div class="lab"><b>Additional agent notes</b><span class="ov-state" data-off="Blank when off">Blank when off</span></div>
             <div class="set-ctl"><button class="toggle" aria-label="agent notes override"></button></div>
           </div>
           <div class="set-body">
@@ -259,7 +259,7 @@
 
         <div class="card set-card ov-card">
           <div class="set-row">
-            <div class="lab"><b>Slop maximum time</b><span class="ov-state" data-off="off — uses your Settings default (60s)">off — uses your Settings default (60s)</span></div>
+            <div class="lab"><b>Slop maximum time</b><span class="ov-state" data-off="Using 60s when off">Using 60s when off</span></div>
             <div class="set-ctl"><button class="toggle" aria-label="max time override"></button></div>
           </div>
           <div class="set-body">
@@ -286,13 +286,13 @@
           <div class="lab"><b>Default generation model</b><span>The Hyper model every build runs on</span></div>
           <div class="set-ctl">
             <select class="set-input" id="model-select">
-              <option value="prism" selected>hyper / prism</option>
+              <option value="prism">hyper / prism</option>
               <option value="prism-flash">hyper / prism-flash</option>
               <option value="prism-core">hyper / prism-core</option>
               <option value="qwen3.8-flash">hyper / qwen3.8-flash</option>
               <option value="qwen3.6-plus">hyper / qwen3.6-plus</option>
               <option value="qwen3.5-plus">hyper / qwen3.5-plus</option>
-              <option value="deepseek-v4.1-flash">hyper / deepseek-v4.1-flash</option>
+              <option value="deepseek-v4.1-flash" selected>hyper / deepseek-v4.1-flash</option>
               <option value="deepseek-v4.1-flash-1017">hyper / deepseek-v4.1-flash-1017</option>
             </select>
           </div>
