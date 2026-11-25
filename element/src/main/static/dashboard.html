@@ -284,11 +284,12 @@
     <button data-pane="account"><span class="ic">👤</span><span class="navlabel">Account</span></button>
     <div class="divider"></div>
     <a href="deck.html" target="_blank" rel="opener">
+      <button class="copy-link" data-copy="deck.html" title="copy link to this screen">⧉</button>
       <span class="ic">🎛️</span><span class="navlabel">Deck</span><span class="out-arrow">↗</span>
     </a>
     <a href="slop-play.html" target="_blank" rel="opener">
-      <span class="ic">📺</span><span class="navlabel">Slop</span>
-      <span class="out-arrow"><button class="copy-link" data-copy="slop-play.html" title="copy link to this screen">⧉</button>↗</span>
+      <button class="copy-link" data-copy="slop-play.html" title="copy link to this screen">⧉</button>
+      <span class="ic">📺</span><span class="navlabel">Slop</span><span class="out-arrow">↗</span>
     </a>
   </nav>
   <button class="ghost btn collapse-btn" id="collapse">⟨⟩</button>
@@ -663,19 +664,20 @@
     document.getElementById('drawer').classList.toggle('collapsed');
   });
 
-  // the Slop entry's copy-link chip: copies the playback page's URL
-  const copyBtn = document.querySelector('.copy-link');
-  copyBtn.addEventListener('click', async (e) => {
-    e.preventDefault(); // don't navigate — just copy
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(new URL(copyBtn.dataset.copy, location.href).href);
-      copyBtn.textContent = '✓';
-      copyBtn.classList.add('copied');
-    } catch (_) {
-      copyBtn.textContent = '✕';
-    }
-    setTimeout(() => { copyBtn.textContent = '⧉'; copyBtn.classList.remove('copied'); }, 1500);
+  // the Deck/Slop copy-link chips: copy that screen's URL, never navigate
+  document.querySelectorAll('.copy-link').forEach((copyBtn) => {
+    copyBtn.addEventListener('click', async (e) => {
+      e.preventDefault(); // don't navigate — just copy
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(new URL(copyBtn.dataset.copy, location.href).href);
+        copyBtn.textContent = '✓';
+        copyBtn.classList.add('copied');
+      } catch (_) {
+        copyBtn.textContent = '✕';
+      }
+      setTimeout(() => { copyBtn.textContent = '⧉'; copyBtn.classList.remove('copied'); }, 1500);
+    });
   });
 
   // ---------- Twitch embed (dev.twitch.tv/docs/embed/video-and-clips) ----------
