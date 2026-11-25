@@ -1,0 +1,2059 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background:
+    repeating-linear-gradient(118deg, rgba(255, 0, 153, 0.03) 0 1px, transparent 1px 10px),
+    #0d1335; /* solid navy — this is a local tool page, not an OBS overlay */
+  color: #eef2fb;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#deck {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  display: grid;
+  gap: 1.4rem;
+}
+
+/* The secondary sections (scenes, timer, sources, stinger) stack the same
+   whether they sit in the page flow (wide screens) or in the mobile menu. */
+#secondary {
+  display: grid;
+  gap: 1.4rem;
+}
+
+/* Mobile-only chrome: the quick button column and the More bar. Wide
+   screens show the full sections instead — both stay hidden. */
+#primary-section,
+#menu-toggle {
+  display: none;
+}
+
+#menu-toggle {
+  font: inherit;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 0, 153, 0.35);
+  border-radius: 8px;
+  padding: 0.55em 1em;
+  cursor: pointer;
+}
+
+#menu-toggle:hover {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+h1 {
+  margin: 0;
+  font-weight: 200;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
+  color: #9fb6d4;
+}
+
+#obs-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem; /* breathing room between "Scenes" and the dot */
+  font-size: 0.85rem;
+  color: #9fb6d4;
+}
+
+#twitch-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #9fb6d4;
+}
+
+#twitch-status .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6d81a0;
+}
+
+#twitch-status .dot.connected {
+  background: #ff0099;
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.8);
+}
+
+/* Auth bar (ticket 02) — sits left of the twitch status. */
+#auth-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #eef2fb;
+}
+#auth-status:has(+ #twitch-status) { margin-left: 0; }
+#auth-status #auth-user { color: #9fb6d4; }
+#auth-status a {
+  font: inherit;
+  font-size: 0.8rem;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+  text-decoration: none;
+}
+#auth-status a:hover { box-shadow: 0 0 12px rgba(255, 0, 153, 0.3); }
+
+#twitch-status .dot.auth-required {
+  background: #d7b56a;
+  box-shadow: 0 0 8px rgba(215, 181, 106, 0.7);
+}
+
+#twitch-status .dot.disconnected {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.6);
+}
+
+#twitch-status a {
+  font: inherit;
+  font-size: 0.8rem;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.25em 0.8em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#twitch-status a:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}
+
+#obs-status .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6d81a0;
+  /* the dot is also a reconnect button */
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+#obs-status .dot:hover {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
+}
+
+#obs-status .dot:active {
+  transform: scale(0.85);
+}
+
+#obs-status .dot.connecting {
+  background: #d7b56a;
+  box-shadow: 0 0 8px rgba(215, 181, 106, 0.7);
+  cursor: wait;
+}
+
+#obs-status .dot.connected {
+  background: #6effa8;
+  box-shadow: 0 0 10px rgba(110, 255, 168, 0.8);
+}
+
+/* unreachable: nothing listening at all; handshake-dropped: server is up
+   but wedged mid-handshake; both mean OBS-side trouble */
+#obs-status .dot.unreachable,
+#obs-status .dot.handshake-dropped,
+#obs-status .dot.disconnected,
+#obs-status .dot.auth-failed,
+#obs-status .dot.error {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.6);
+}
+
+#obs-status .dot.auth-required {
+  background: #d7b56a;
+  box-shadow: 0 0 8px rgba(215, 181, 106, 0.7);
+}
+
+/* timestamped history of the last few status transitions (shown in the
+   OBS settings modal) */
+
+#obs-auth input {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.4em 0.7em;
+  outline: none;
+}
+
+#obs-auth input:focus {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.25);
+}
+
+#obs-auth button {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.4em 0.9em;
+  cursor: pointer;
+}
+
+h2 {
+  margin: 0 0 0.7rem;
+  font-weight: 300;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #7e93b3;
+}
+
+section {
+  border: 1px solid rgba(255, 0, 153, 0.25);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  background: rgba(13, 19, 53, 0.6);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* hidden must beat display:flex — the OBS button groups vanish entirely
+   whenever the deck isn't connected to OBS */
+.buttons[hidden] {
+  display: none;
+}
+
+button.scene,
+button.toggle {
+  font: inherit;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 0, 153, 0.35);
+  border-radius: 8px;
+  padding: 0.5em 1.1em;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+button.scene:hover,
+button.toggle:hover {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}
+
+button.scene.active {
+  background: rgba(255, 0, 153, 0.18);
+  border-color: #ff0099;
+  box-shadow: 0 0 14px rgba(255, 0, 153, 0.4);
+}
+
+button.scene.missing,
+button.toggle.missing {
+  opacity: 0.45;
+  border-style: dashed;
+  cursor: default;
+}
+
+button.toggle.on {
+  background: rgba(255, 0, 153, 0.18);
+  border-color: #ff0099;
+  box-shadow: 0 0 14px rgba(255, 0, 153, 0.4);
+}
+
+/* --- starting soon timer --------------------------------------------------- */
+
+#timer-form {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+#timer-input {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.4em 0.7em;
+  width: 9ch;
+  outline: none;
+}
+
+#timer-input:focus {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.25);
+}
+
+#timer-input.invalid {
+  border-color: #ff5c5c;
+  box-shadow: 0 0 10px rgba(255, 92, 92, 0.35);
+}
+
+#timer-form button {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.4em 0.9em;
+  cursor: pointer;
+}
+
+#timer-form button:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}
+
+#timer-stop {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* --- stinger transition ------------------------------------------------------ */
+
+#stinger-test {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 8px;
+  padding: 0.5em 1.1em;
+  cursor: pointer;
+}
+
+#stinger-test:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}
+
+#stinger-test:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#timer-status {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: #9fb6d4;
+  font-variant-numeric: tabular-nums;
+}
+
+#timer-status.running {
+  color: #ff5cb3;
+  text-shadow: 0 0 10px rgba(255, 0, 153, 0.4);
+}
+
+/* --- chat monitor (same line recipe as the /chat overlay) ----------------- */
+
+#chat-section #chat {
+  height: 44vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+  font-size: 0.92rem;
+}
+
+#chat .line {
+  color: #ffffff;
+  line-height: 1.5;
+  font-weight: 300;
+  overflow-wrap: anywhere;
+  animation: line-in 0.25s ease-out;
+  transition: opacity 0.4s;
+}
+
+#chat .line.out {
+  opacity: 0;
+}
+
+#chat .line .user {
+  font-weight: 600;
+}
+
+#chat .line .sep {
+  opacity: 0.5;
+  margin: 0 0.4em 0 0.15em;
+}
+
+#chat .line .msg {
+  white-space: pre-wrap;
+}
+
+#chat .line .emote {
+  height: 1.45em;
+  vertical-align: -0.32em;
+  margin: 0 1px;
+}
+
+/* Shared-stream source badge: the mini channel avatar marking which chat a
+   message came from (official-style). Renders as a plain ring until the
+   avatar resolves. */
+#chat .line .source {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.4em;
+  vertical-align: -0.35em;
+}
+
+#chat .line .source .source-avatar {
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 50%;
+  border: 1px solid rgba(238, 242, 251, 0.45);
+  box-sizing: border-box;
+  background: rgba(13, 19, 53, 0.6);
+}
+
+#chat .line.action .msg {
+  font-style: italic;
+}
+
+#chat .line.event {
+  color: hsl(324 100% 68%);
+  font-style: italic;
+  font-weight: 400;
+}
+
+@keyframes line-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- desktop: two columns — controls left, slop + chat right --------------- */
+
+/* The right column is the monitoring split: the slop review queue takes the
+   upper 40%, chat the lower 60%. The whole dashboard snaps to the page
+   height — no page scrolling on wide screens; inner regions scroll instead. */
+@media (min-width: 921px) {
+  html, body {
+    overflow: hidden;
+  }
+
+  #deck {
+    height: 100vh;
+    height: 100dvh;
+    box-sizing: border-box;
+    padding: 1rem 1.2rem;
+    gap: 0.9rem;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-rows: auto minmax(0, 4fr) minmax(0, 6fr);
+    grid-template-areas:
+      "header    header"
+      "secondary slop"
+      "secondary chat";
+  }
+
+  #deck > header { grid-area: header; }
+
+  #secondary {
+    grid-area: secondary;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 6fr) minmax(0, 4fr); /* controls 60% / registry 40% */
+    gap: 0.9rem;
+  }
+
+  #controls-group {
+    min-height: 0;
+    overflow-y: auto; /* the controls scroll; the registry stays pinned */
+    align-content: start;
+    display: grid;
+    gap: 1.4rem;
+    padding-right: 0.2rem;
+  }
+
+  #slop-controls-section {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* the registry list scrolls inside */
+  }
+
+  #slop-registry {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #slop-section {
+    grid-area: slop;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #slop-section .slop-queue {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #chat-section {
+    grid-area: chat;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #chat-section #chat {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* --- mobile: quick buttons left; slop queue + chat right; menu fold --------- */
+
+/* Phones and tablets, either orientation. The deck fills the screen with the
+   same monitoring split as the desktop, mirrored: the primary buttons
+   (Starting Soon, BRB, Hide Desktop) stack down a 40% column and stretch to
+   fill it, and the other 60% column splits vertically — slop review queue
+   upper 40%, chat monitor lower 60% — so both stay visible while streaming.
+   Everything else folds away behind the More bar; opening it lays the
+   secondary sections out below and the deck scrolls. */
+@media (max-width: 920px) {
+  #deck {
+    height: 100vh;
+    height: 100dvh; /* track the mobile browser chrome */
+    grid-template-columns: 2fr 3fr; /* 40 / 60 split */
+    grid-template-rows: auto minmax(0, 4fr) minmax(0, 6fr) auto auto;
+    grid-template-areas:
+      "header    header"
+      "primary   slop"
+      "primary   chat"
+      "secondary secondary"
+      "menubar   menubar";
+    gap: 0.7rem;
+    padding: 0.7rem;
+    overflow-y: auto; /* the opened menu scrolls; the closed view fits */
+  }
+
+  #deck > header { grid-area: header; }
+  #primary-section { grid-area: primary; display: flex; min-height: 0; }
+  #slop-section {
+    grid-area: slop;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #slop-section .slop-queue {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  #chat-section { grid-area: chat; }
+  #secondary { grid-area: secondary; display: none; }
+  #menu-toggle { grid-area: menubar; display: block; width: 100%; }
+
+  /* Compact header: the title gives up its row to the status. */
+  #deck > header h1 {
+    display: none;
+  }
+
+  /* The primary buttons stretch to fill the column — big touch targets. */
+  #primary-buttons {
+    flex: 1;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    min-height: 0;
+  }
+
+  #primary-buttons button {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Chat fills its column's height; the heading gives up its row. */
+  #chat-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  #chat-section h2 {
+    display: none;
+  }
+
+  #chat-section #chat {
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Opening the menu reveals the secondary sections below the split. */
+  #deck.menu-open #secondary {
+    display: grid;
+    gap: 0.7rem;
+  }
+}
+
+/* --- slop ------------------------------------------------------------------ */
+
+#slop-section .slop-queue .empty,
+#slop-notes .slop-note {
+  margin: 0.2em 0;
+  color: #ffffff99;
+  font-size: 0.85em;
+}
+
+/* Queue cards: vertical, expandable, no horizontal scrolling — the header
+   line carries the badge, redeemer, and explicit buttons; the prompt sits
+   below, clamped to two lines until opened. */
+.slop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  padding: 0.5em 0.65em;
+  margin: 0.3em 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #6d81a0;
+  border-radius: 0.35em;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.slop-item.presented {
+  border-left-color: #ff0099;
+  background: rgba(255, 0, 153, 0.08);
+}
+
+/* a brand-new request pulses so it can't be missed */
+.slop-item.fresh {
+  animation: slop-fresh 1.2s ease 3;
+}
+
+@keyframes slop-fresh {
+  0%, 100% { background: rgba(255, 255, 255, 0.05); }
+  50% { background: rgba(255, 0, 153, 0.22); }
+}
+
+.slop-item .head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.slop-item .mode {
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #ffffff99;
+}
+
+.slop-item .who {
+  color: #ff0099;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slop-item .text {
+  color: #ffffffee;
+  cursor: pointer;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* the model chip on build cards — right of the username, survives failure */
+.slop-model {
+  font-size: 0.75em;
+  color: #9fb6d4;
+  white-space: nowrap;
+}
+
+.slop-item.expanded .text {
+  display: block;
+  -webkit-line-clamp: none;
+}
+
+.slop-item .chip {
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffffff99;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1em;
+  padding: 0.2em 0.7em;
+  white-space: nowrap;
+}
+
+.slop-item .chip.presented {
+  color: #ff0099;
+  border-color: rgba(255, 0, 153, 0.6);
+}
+
+.slop-item .chip.busy {
+  color: #d7b56a;
+  border-color: rgba(215, 181, 106, 0.6);
+  animation: chip-pulse 1.2s ease infinite;
+}
+
+@keyframes chip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.slop-item .actions {
+  display: flex;
+  gap: 0.3em;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.slop-item button {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.25em 0.8em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: #ff0099;
+  color: #fff;
+  font-weight: 600;
+}
+
+.slop-item button:hover {
+  filter: brightness(1.15);
+}
+
+.slop-item button.review {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #eef2fb;
+}
+
+.slop-reg.suspended {
+  opacity: 0.55;
+  border-left-color: #d7b56a;
+}
+
+.slop-reg {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3em 0.5em;
+  margin: 0.15em 0;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #6d81a0;
+  border-radius: 0.3em;
+  font-size: 0.85em;
+}
+
+.slop-reg input[type='checkbox'] {
+  accent-color: #ff0099;
+  cursor: pointer;
+}
+
+.slop-reg .reg-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ffffffee;
+}
+
+.slop-reg button {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.2em 0.7em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: #d7b56a;
+  color: #0d1335;
+  font-weight: 600;
+}
+
+.slop-reg button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#slop-generating {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+#slop-agent-text {
+  flex: 1;
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 1em;
+  line-height: 1.45;
+  color: #ffffffee;
+  max-height: 9em;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+#slop-count {
+  margin-top: 0.5em;
+  font-size: 0.8em;
+  color: #ffffff66;
+}
+
+/* registry header tools (+ / ⚙) */
+#slop-controls-section h2 {
+  display: flex;
+  align-items: center;
+}
+
+.reg-tools {
+  margin-left: auto;
+  display: flex;
+  gap: 0.3em;
+}
+
+.reg-tools button {
+  font: inherit;
+  font-size: 0.9em;
+  line-height: 1;
+  padding: 0.15em 0.55em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef2fb;
+}
+
+.reg-tools button:hover {
+  background: rgba(255, 0, 153, 0.25);
+}
+
+/* registry search */
+#slop-search-form {
+  display: flex;
+  gap: 0.4em;
+  margin-bottom: 0.6em;
+}
+
+#slop-search {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.85em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.35em 0.6em;
+  outline: none;
+}
+
+#slop-search:focus {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.25);
+}
+
+#slop-search-clear {
+  font: inherit;
+  font-size: 0.85em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.35em 0.7em;
+  cursor: pointer;
+}
+
+#slop-registry .empty {
+  margin: 0.2em 0;
+  color: #ffffff99;
+  font-size: 0.85em;
+}
+
+/* --- moderation tier indicators ---------------------------------------------- */
+
+#slop-modstatus,
+.slop-reg .tierchip {
+  display: inline-block;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1em;
+  padding: 0.15em 0.6em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#slop-modstatus {
+  margin-bottom: 0.5em;
+  cursor: help;
+}
+
+.slop-reg .tierchip {
+  padding: 0.05em 0.45em;
+  cursor: help; /* pure indicator — the ⓘ button opens the about dialog */
+}
+
+/* encircled italic "i" — the row's info button */
+.slop-reg .iconbtn.infob {
+  font-style: italic;
+  font-weight: 700;
+  font-family: Georgia, "Times New Roman", serif;
+  width: 1.7em;
+  height: 1.7em;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.slop-reg .iconbtn.infob:hover {
+  border-color: #ff0099;
+  color: #ff0099;
+  background: transparent;
+}
+
+.tier-kid {
+  color: #6effa8;
+  border-color: rgba(110, 255, 168, 0.5);
+}
+
+.tier-teen {
+  color: #6ea8ff;
+  border-color: rgba(110, 168, 255, 0.5);
+}
+
+.tier-adult {
+  color: #ffb46e;
+  border-color: rgba(255, 180, 110, 0.5);
+}
+
+.tier-anything {
+  color: #ff5c9e;
+  border-color: rgba(255, 92, 158, 0.5);
+}
+
+.tier-unknown {
+  color: #ffffff88;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* info modal rows */
+.info-row {
+  display: flex;
+  gap: 0.6em;
+  font-size: 0.85em;
+  line-height: 1.45;
+}
+
+.info-row .k {
+  width: 7em;
+  flex-shrink: 0;
+  color: #9fb6d4;
+  text-transform: uppercase;
+  font-size: 0.75em;
+  letter-spacing: 0.1em;
+  padding-top: 0.15em;
+}
+
+.info-row .v {
+  color: #ffffffee;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* --- play queue monitor ----------------------------------------------------- */
+
+.play-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3em 0.6em;
+  margin: 0.2em 0;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #6d81a0;
+  border-radius: 0.3em;
+  font-size: 0.85em;
+}
+
+.play-row.playing {
+  border-left-color: #ff0099;
+  background: rgba(255, 0, 153, 0.08);
+}
+
+.play-row .chip {
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffffff99;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1em;
+  padding: 0.2em 0.7em;
+  white-space: nowrap;
+}
+
+.play-row .chip.playing {
+  color: #ff0099;
+  border-color: rgba(255, 0, 153, 0.6);
+}
+
+.play-row .chip.paused {
+  color: #d7b56a;
+  border-color: rgba(215, 181, 106, 0.6);
+}
+
+.play-row button {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.15em 0.6em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  color: #eef2fb;
+}
+
+.play-row button:hover {
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.3);
+}
+
+#slop-playlist {
+  margin-bottom: 0.5em;
+}
+
+/* playback running/stopped light */
+.play-row .light {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.play-row .light.go {
+  background: #6effa8;
+  box-shadow: 0 0 8px rgba(110, 255, 168, 0.7);
+}
+
+.play-row .light.stop {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.6);
+}
+
+.play-row .playpause {
+  font-size: 0.85em;
+  padding: 0.15em 0.6em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  color: #eef2fb;
+}
+
+/* The slop queue header's play/pause is itself the light: green = running,
+   red = stopped, right-aligned at the top of the panel. */
+#slop-section h2 {
+  display: flex;
+  align-items: center;
+}
+
+
+#slop-playpause.light.go {
+  background: #6effa8;
+  box-shadow: 0 0 10px rgba(110, 255, 168, 0.7);
+}
+
+#slop-playpause.light:hover {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15), 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* --- registry panel: connection-budget warning ------------------------------ */
+
+#slop-connwarn {
+  font-size: 0.8em;
+  color: #ffffff88;
+}
+
+#slop-connwarn.warn {
+  color: #ffd27a;
+}
+
+/* --- stage monitor: header play/pause light + idle row ---------------------- */
+
+#slop-playpause {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.2em 0.8em;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #eef2fb;
+}
+
+#slop-playpause .light {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.5em;
+}
+
+#slop-playpause .light.go {
+  background: #6effa8;
+  box-shadow: 0 0 10px rgba(110, 255, 168, 0.7);
+}
+
+#slop-playpause .light.stop {
+  background: #ff5c5c;
+  box-shadow: 0 0 10px rgba(255, 92, 92, 0.7);
+}
+
+#slop-playpause.running {
+  border-color: rgba(110, 255, 168, 0.5);
+}
+
+#slop-playpause.stopped {
+  border-color: rgba(255, 92, 92, 0.6);
+}
+
+.play-row.idle {
+  color: #ffffff77;
+  cursor: default;
+}
+
+/* --- slop preview modal ------------------------------------------------------ */
+
+#slop-preview {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* the hidden attribute must actually hide — the display:grid above would
+   otherwise override the UA default */
+#slop-preview[hidden] {
+  display: none;
+}
+
+#slop-preview-panel {
+  /* fills the viewport; the stage letterboxes its iframe to an exact 16:9,
+     so the settings panes never starve or crop the preview */
+  width: 92vw;
+  height: 92vh;
+  max-width: 1700px;
+  background: #0d1335;
+  border: 2px solid #ff0099;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 4rem rgba(255, 0, 153, 0.4);
+}
+
+#slop-preview-head {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(255, 0, 153, 0.3);
+}
+
+#slop-preview-title {
+  flex: 1;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9fb6d4;
+}
+
+#slop-preview-close {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.3em 0.9em;
+  cursor: pointer;
+}
+
+#slop-preview-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  /* letterbox host: the iframe is fitted to an exact 16:9 inside whatever
+     space the head/chat/triggers rows leave, so nothing gets cropped */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05081c;
+}
+
+/* the iframe is sized by JS (fitPreviewStage) to the largest 16:9 that fits */
+#slop-preview-stage iframe {
+  display: block;
+  border: none;
+  background: #0d1335;
+}
+
+/* --- preview chat commands (interactive slops) ---------------------------------- */
+
+#slop-preview-controls {
+  padding: 0.4em 0.8em 0;
+  border-top: 1px solid rgba(255, 0, 153, 0.2);
+}
+
+#slop-preview-controls .spt-intro {
+  margin: 0 0 0.25em;
+  font-size: 0.75em;
+  color: #9fb6d4;
+}
+
+#slop-preview-controls .ctrl-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  font-size: 0.75em;
+  line-height: 1.5;
+}
+
+#slop-preview-controls .ctrl-cmd {
+  color: #ff7ac2;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#slop-preview-controls .ctrl-desc {
+  color: rgba(238, 242, 251, 0.75);
+}
+
+/* --- preview test chat (interactive slops) ----------------------------------- */
+
+#slop-preview-chat {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.8em;
+  border-top: 1px solid rgba(255, 0, 153, 0.3);
+}
+
+#slop-preview-chat input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.85em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.35em 0.6em;
+  outline: none;
+}
+
+#slop-preview-chat input:focus {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.25);
+}
+
+#slop-preview-quick {
+  display: flex;
+  gap: 0.3em;
+  flex-shrink: 0;
+}
+
+#slop-preview-quick .quickbtn {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.2em 0.6em;
+  border: 1px solid rgba(255, 0, 153, 0.5);
+  border-radius: 1em;
+  cursor: pointer;
+  background: rgba(255, 0, 153, 0.15);
+  color: #eef2fb;
+}
+
+#slop-preview-quick .quickbtn:hover {
+  background: rgba(255, 0, 153, 0.3);
+}
+
+.slop-reg .copy,
+.slop-reg .dopreview {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.2em 0.6em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef2fb;
+}
+
+.slop-reg .copy:hover,
+.slop-reg .dopreview:hover {
+  background: rgba(255, 0, 153, 0.25);
+}
+
+/* --- deck modals (add-a-slop + settings) ------------------------------------ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-panel {
+  width: min(30rem, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: #0d1335;
+  border: 2px solid #ff0099;
+  border-radius: 12px;
+  box-shadow: 0 0 4rem rgba(255, 0, 153, 0.4);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(255, 0, 153, 0.3);
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9fb6d4;
+}
+
+.modal-head .modal-close {
+  margin-left: auto;
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.2em 0.7em;
+  cursor: pointer;
+}
+
+.modal-body {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3em;
+  font-size: 0.85em;
+  color: #9fb6d4;
+}
+
+.field[hidden] {
+  display: none; /* display:grid above would otherwise defeat the attribute */
+}
+
+.field select,
+.field input,
+.field textarea {
+  font: inherit;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.4em 0.6em;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field select:focus,
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(255, 0, 153, 0.8);
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.25);
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85em;
+  color: #9fb6d4;
+}
+
+.field.check input {
+  width: auto;
+  margin: 0;
+  accent-color: #ff0099;
+  cursor: pointer;
+}
+
+#obs-status-text {
+  display: inline-block;
+  min-width: 13ch; /* short labels never push the header around */
+}
+
+/* --- scenes header: OBS settings gear ---------------------------------------- */
+
+#scenes-section h2 {
+  display: flex;
+  align-items: center;
+}
+
+/* --- OBS settings modal -------------------------------------------------------- */
+
+#obs-state-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85em;
+  color: #eef2fb;
+}
+
+#obs-state-line .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #6d81a0;
+}
+
+#obs-state-line .dot.connected {
+  background: #6effa8;
+  box-shadow: 0 0 8px rgba(110, 255, 168, 0.7);
+}
+
+#obs-state-line .dot.connecting {
+  background: #d7b56a;
+  box-shadow: 0 0 8px rgba(215, 181, 106, 0.7);
+}
+
+#obs-state-line .dot.disconnected {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.6);
+}
+
+#obs-state-line .dot.disabled {
+  background: #6d81a0;
+}
+
+#obs-history-list {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.78em;
+  color: #ffffffcc;
+  max-height: 10em;
+  overflow-y: auto;
+}
+
+.modal-help {
+  font-size: 0.78em;
+  line-height: 1.5;
+  color: #ffffff99;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.5em 0.7em;
+}
+
+.modal-help b {
+  color: #9fb6d4;
+}
+
+#obs-history-list li {
+  margin: 0.15em 0;
+}
+
+#obs-history-list time {
+  color: #ffffff66;
+  margin-right: 0.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-error {
+  margin: 0;
+  font-size: 0.8em;
+  color: #ff9a9a;
+}
+
+#slop-moderation-note {
+  margin: -0.4em 0 0;
+  font-size: 0.8em;
+  color: #ffffff88;
+}
+
+#slop-advanced {
+  display: grid;
+  gap: 0.8rem;
+}
+
+#slop-advanced summary {
+  cursor: pointer;
+  font-size: 0.85em;
+  color: #9fb6d4;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5em;
+  justify-content: flex-end;
+}
+
+.modal-actions button {
+  font: inherit;
+  font-size: 0.85em;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.4em 1em;
+  cursor: pointer;
+}
+
+.modal-actions button[type='submit'] {
+  background: #ff0099;
+  color: #fff;
+  font-weight: 600;
+}
+
+.modal-actions button:hover {
+  filter: brightness(1.15);
+}
+
+
+/* --- pending-approval rows (top of the registry, highlighted) ---------------- */
+
+.slop-reg.pending {
+  border-left-color: #ffd27a;
+  background: rgba(215, 181, 106, 0.12);
+}
+
+.slop-reg .chip.pending {
+  color: #ffd27a;
+  border-color: rgba(215, 181, 106, 0.6);
+}
+
+.slop-reg .iconbtn {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.15em 0.5em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef2fb;
+}
+
+.slop-reg .iconbtn:hover {
+  background: rgba(255, 0, 153, 0.25);
+}
+
+.slop-reg .iconbtn.approve {
+  color: #6effa8;
+}
+
+.slop-reg .iconbtn.reject {
+  color: #ff5c5c;
+}
+
+.slop-reg .iconbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- decision buttons in the preview head ----------------------------------- */
+
+#slop-preview-head .decide {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.3em 0.9em;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+  color: #0d1335;
+  font-weight: 600;
+}
+
+#slop-preview-head .decide.go {
+  background: #6effa8;
+}
+
+#slop-preview-head .decide.stop {
+  background: #ff5c5c;
+  color: #fff;
+}
+
+#slop-preview-head button:hover {
+  filter: brightness(1.15);
+}
+
+/* Failed build jobs — visible, restartable, never silent. */
+.slop-item.failed {
+  border-left: 3px solid #ff5a5a;
+}
+.slop-item.failed .text {
+  color: #ffb0b0;
+  white-space: pre-wrap;
+}
+.slop-item .chip.failed {
+  background: rgba(255, 90, 90, 0.25);
+  color: #ff9a9a;
+}
+.slop-item .chip.buildqueued {
+  background: rgba(255, 200, 60, 0.18);
+  color: #ffd88a;
+}
+
+/* Job timers — right-aligned next to the row actions. */
+.slop-timer {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* --- per-slop trigger settings (ticket #3) ----------------------------------- */
+
+#slop-preview-triggers {
+  flex-shrink: 0;
+  max-height: 34%;
+  overflow-y: auto;
+  padding: 0.5em 0.8em 0.6em;
+  border-top: 1px solid rgba(255, 0, 153, 0.3);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.spt-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.4em;
+}
+
+.spt-title {
+  font-weight: 600;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb6d4;
+  white-space: nowrap;
+}
+
+#spt-add-type,
+#slop-preview-triggers select,
+#slop-preview-triggers input[type='number'],
+#slop-preview-triggers input[type='text'] {
+  font: inherit;
+  font-size: 0.8em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.25em 0.5em;
+  outline: none;
+}
+
+.spt-save {
+  font: inherit;
+  font-size: 0.8em;
+  margin-left: auto;
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.25em 0.8em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.spt-save:hover {
+  filter: brightness(1.15);
+}
+
+#spt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.spt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  padding: 0.3em 0.5em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.spt-row.off {
+  opacity: 0.45;
+}
+
+/* the matcher test hit — a chat row that would fire on the typed line */
+.spt-row.hit {
+  border-color: #ffd88a;
+  box-shadow: 0 0 10px rgba(255, 200, 60, 0.35);
+}
+
+.spt-type {
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ff7ac2;
+  min-width: 8em;
+}
+
+/* creator-proposed / held badges (issue #4) */
+.spt-badge {
+  font-size: 0.65em;
+  padding: 0.1em 0.5em;
+  border-radius: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  background: rgba(159, 182, 212, 0.15);
+  border: 1px solid rgba(159, 182, 212, 0.4);
+  color: #9fb6d4;
+}
+
+.spt-badge.held {
+  background: rgba(255, 200, 60, 0.12);
+  border-color: rgba(255, 200, 60, 0.45);
+  color: #ffd88a;
+}
+
+.spt-row.creator .spt-type {
+  color: #9fb6d4;
+}
+
+.spt-criteria {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.spt-field {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.75em;
+  color: #9fb6d4;
+  white-space: nowrap;
+}
+
+.spt-field input[type='text'],
+.spt-field input[type='number'] {
+  min-width: 9em;
+}
+
+.spt-patterns {
+  flex: 1;
+  min-width: 12em;
+}
+
+.spt-remove {
+  font: inherit;
+  font-size: 0.8em;
+  color: #ff9a9a;
+  background: rgba(255, 90, 90, 0.12);
+  border: 1px solid rgba(255, 90, 90, 0.4);
+  border-radius: 6px;
+  padding: 0.15em 0.5em;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.spt-remove:hover {
+  background: rgba(255, 90, 90, 0.3);
+}
+
+.spt-hint {
+  margin: 0.4em 0 0;
+  font-size: 0.7em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#slop-preview-triggers .empty {
+  margin: 0.2em 0;
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* the !slop roster toggle — an explicit trigger-styled row, first below
+   the trigger list */
+.spt-slopcommand {
+  cursor: pointer;
+  margin-top: 0.35em;
+}
+
+.spt-slopcommand .spt-desc {
+  font-size: 0.75em;
+  color: rgba(238, 242, 251, 0.6);
+}
+
+/* --- streamer cam placement (ctx.streamer) ------------------------------------- */
+
+#spt-cam {
+  margin-top: 0.5em;
+}
+
+#spt-cam-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 2px dashed rgba(255, 0, 153, 0.65);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 8px, transparent 8px 16px),
+    #060a20;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* the streamer's live Twitch stream, embedded muted beneath the placement
+   overlay — pointer-events off so dragging the bust is never blocked */
+#spt-cam-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none;
+}
+
+.spt-cam-label {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.65em;
+  letter-spacing: 0.12em;
+  color: rgba(255, 122, 194, 0.75);
+  pointer-events: none;
+}
+
+#spt-cam-box {
+  position: absolute;
+  border: 2px solid #ffd88a;
+  border-radius: 6px;
+  background: rgba(255, 200, 60, 0.15);
+  box-shadow: 0 0 14px rgba(255, 200, 60, 0.45);
+  cursor: move;
+  touch-action: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+#spt-cam-box svg {
+  width: 62%;
+  height: 72%;
+  color: rgba(255, 200, 60, 0.85);
+  pointer-events: none;
+}
+
+#spt-cam-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 200, 60, 0.85);
+  border-top-left-radius: 6px;
+  cursor: nwse-resize;
+}
+
+/* the light cam overlay drawn directly on the per-slop preview stage —
+   removed: the placement is edited only in ⚙ settings now */
+
+/* the settings editor's placement box keeps its name chip */
+#spt-cam-box::before {
+  content: 'your cam';
+  position: absolute;
+  top: -1.6em;
+  left: -2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #ffd88a;
+  color: #0d1335;
+  padding: 1px 7px;
+  border-radius: 4px 4px 0 0;
+}
+
+/* registry row: active-trigger count */
+.zapchip {
+  font-size: 0.75em;
+  padding: 0.1em 0.5em;
+  border-radius: 1em;
+  background: rgba(255, 200, 60, 0.15);
+  border: 1px solid rgba(255, 200, 60, 0.4);
+  color: #ffd88a;
+  white-space: nowrap;
+}
+
+/* registry row: per-slop cooldown countdown + its clear button (#5) */
+.slop-reg .cooldown {
+  font-size: 0.75em;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1em 0.5em;
+  border-radius: 1em;
+  background: rgba(120, 170, 255, 0.15);
+  border: 1px solid rgba(120, 170, 255, 0.4);
+  color: #a9c8ff;
+  white-space: nowrap;
+}
+
+.slop-reg .cdclear {
+  font: inherit;
+  font-size: 0.7em;
+  color: #a9c8ff;
+  background: rgba(120, 170, 255, 0.1);
+  border: 1px solid rgba(120, 170, 255, 0.35);
+  border-radius: 1em;
+  padding: 0.05em 0.5em;
+  cursor: pointer;
+}
+
+.slop-reg .cdclear:hover {
+  background: rgba(120, 170, 255, 0.25);
+}
+
+/* the trigger allow-list in ⚙ settings — compact: one row per ALLOWED type,
+   uncheck/✕ deletes the row, "add event…" adds one back */
+#slop-allowed-triggers {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3em;
+  padding: 0.3em 0;
+  width: 100%;
+}
+
+#slop-allowed-triggers .at-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.6em;
+  text-align: left;
+  padding: 0.3em 0.6em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#slop-allowed-triggers .at-row:hover {
+  border-color: rgba(255, 0, 153, 0.4);
+}
+
+#slop-allowed-triggers .at-name {
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #ff7ac2;
+  white-space: nowrap;
+}
+
+#slop-allowed-triggers .at-desc {
+  font-size: 0.7em;
+  color: rgba(238, 242, 251, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#slop-allowed-triggers .at-remove {
+  font: inherit;
+  font-size: 0.75em;
+  margin-left: auto;
+  color: #ff9a9a;
+  background: rgba(255, 90, 90, 0.12);
+  border: 1px solid rgba(255, 90, 90, 0.4);
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  cursor: pointer;
+}
+
+#slop-allowed-triggers .at-remove:hover {
+  background: rgba(255, 90, 90, 0.3);
+}
+
+#slop-allowed-triggers .at-add {
+  font: inherit;
+  font-size: 0.8em;
+  color: #eef2fb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  border-radius: 6px;
+  padding: 0.25em 0.5em;
+  align-self: flex-start;
+}
+
+#slop-allowed-triggers .at-empty {
+  margin: 0.2em 0;
+  font-size: 0.75em;
+  color: rgba(255, 255, 255, 0.45);
+}

@@ -1,0 +1,353 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #04060c;
+}
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scene overlay — titles for /starting-soon and /brb                  */
+/* ------------------------------------------------------------------ */
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+  animation: overlay-in 1.8s ease-out both;
+}
+
+#overlay h1 {
+  margin: 0;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 200;
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.42em;
+  margin-right: -0.42em; /* optically re-centre letter-spaced text */
+  color: var(--accent, #eef4ff);
+  text-shadow:
+    0 0 18px var(--glow-color, hsl(190 80% 60% / 0.9)),
+    0 0 72px var(--glow-color, hsl(190 80% 60% / 0.55));
+}
+
+#overlay p {
+  margin: 0;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 300;
+  font-size: clamp(0.9rem, 1.6vw, 1.25rem);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
+  color: var(--accent, #c9d8ee);
+  opacity: 0.85;
+  text-shadow: 0 0 14px var(--glow-color, hsl(190 80% 60% / 0.6));
+}
+
+#overlay .countdown {
+  margin: 0.15em 0 0.1em;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 200;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  margin-right: -0.08em;
+  color: var(--accent, #eef4ff);
+  text-shadow:
+    0 0 22px var(--glow-color, hsl(190 80% 60% / 0.9)),
+    0 0 80px var(--glow-color, hsl(190 80% 60% / 0.5));
+}
+
+#overlay .countdown.zero {
+  animation: countdown-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes countdown-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Local picker page at "/" — instructions + per-page reference        */
+/* ------------------------------------------------------------------ */
+#picker {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background:
+    repeating-linear-gradient(118deg, rgba(255, 0, 153, 0.03) 0 1px, transparent 1px 10px),
+    #0d1335;
+  color: #dfe8f5;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#picker[hidden] {
+  display: none !important;
+}
+
+#picker .picker-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+#picker h1 {
+  margin: 0 0 1.6rem;
+  font-weight: 200;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
+  color: #9fb6d4;
+}
+
+#picker code {
+  font-size: 0.85em;
+  color: #9fc7e8;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
+
+#howto {
+  border: 1px solid rgba(255, 0, 153, 0.25);
+  border-radius: 12px;
+  padding: 1rem 1.3rem;
+  background: rgba(13, 19, 53, 0.6);
+  margin-bottom: 1.8rem;
+}
+
+#howto h2 {
+  margin: 0 0 0.7rem;
+  font-weight: 300;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #7e93b3;
+}
+
+#howto ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 300;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #c7d3e8;
+}
+
+#howto strong,
+#picker .card .use strong {
+  color: #eef2fb;
+  font-weight: 600;
+}
+
+#picker .cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+#picker .card {
+  border: 1px solid rgba(255, 0, 153, 0.25);
+  border-radius: 12px;
+  background: rgba(13, 19, 53, 0.6);
+  overflow: hidden; /* keep the summary's hover wash inside the rounded corners */
+}
+
+/* Each card is an expandable panel: the summary row (name + URL + chevron)
+   is always visible; the description and params fold out beneath it. The
+   name stays a plain link — clicking it previews the page instead of
+   toggling the panel. */
+#picker .card summary {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+#picker .card summary::-webkit-details-marker {
+  display: none;
+}
+
+#picker .card summary:hover {
+  background: rgba(255, 0, 153, 0.08);
+}
+
+#picker .card summary:focus-visible {
+  outline: 2px solid rgba(255, 0, 153, 0.6);
+  outline-offset: -2px;
+}
+
+#picker .card summary .url {
+  flex: 1 1 12ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#picker .card summary .expander {
+  color: #7e93b3;
+  font-size: 0.85rem;
+  transition: transform 0.15s ease;
+}
+
+#picker .card summary h2 {
+  flex-shrink: 0; /* the URL ellipsizes, the title never does */
+}
+
+#picker .card details[open] summary .expander {
+  transform: rotate(180deg);
+}
+
+#picker .card .panel-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1.3rem 1rem;
+  border-top: 1px solid rgba(255, 0, 153, 0.15);
+}
+
+#picker .card a {
+  color: #eaf2ff;
+  text-decoration: none;
+}
+
+#picker .card h2 {
+  margin: 0;
+  font-weight: 300;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+#picker .card a:hover h2 {
+  color: #ff5cb3;
+  text-shadow: 0 0 14px rgba(255, 0, 153, 0.45);
+}
+
+#picker .card .url {
+  display: block;
+  width: fit-content;
+  font-size: 0.85rem;
+  user-select: all;
+  cursor: text;
+}
+
+#picker .card p {
+  margin: 0;
+  font-weight: 300;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #c7d3e8;
+}
+
+#picker .card .use {
+  color: #8fa4c4;
+}
+
+#picker .card .params {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 0, 153, 0.15);
+}
+
+#picker .card .param {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+#picker .card .param code {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#picker .card .param span {
+  color: #8fa4c4;
+}
+
+#picker .hint {
+  margin-top: 1.6rem;
+  color: #6d81a0;
+  font-size: 0.85rem;
+}
+
+/* --- twitch connect chip (picker page) ------------------------------------- */
+
+#twitch-connect {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: #9fb6d4;
+}
+
+#twitch-connect .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6d81a0;
+}
+
+#twitch-connect .dot.connected {
+  background: #ff0099;
+  box-shadow: 0 0 10px rgba(255, 0, 153, 0.8);
+}
+
+#twitch-connect .dot.auth-required {
+  background: #d7b56a;
+  box-shadow: 0 0 8px rgba(215, 181, 106, 0.7);
+}
+
+#twitch-connect .dot.disconnected {
+  background: #ff5c5c;
+  box-shadow: 0 0 8px rgba(255, 92, 92, 0.6);
+}
+
+#twitch-connect a {
+  color: #eef2fb;
+  background: rgba(255, 0, 153, 0.18);
+  border: 1px solid rgba(255, 0, 153, 0.6);
+  border-radius: 6px;
+  padding: 0.3em 0.9em;
+  text-decoration: none;
+}
+
+#twitch-connect a:hover {
+  box-shadow: 0 0 12px rgba(255, 0, 153, 0.3);
+}

@@ -1,0 +1,324 @@
+/* Slop overlay (/slop) — transparent page: review modal, agent reasoning
+   ticker, SLOP COMPLETE + confetti stars, and the sandboxed slop stage.
+   Sized by the OBS browser source. */
+
+:root {
+  --accent: #ff0099;
+  --bg: #0d1335;
+  --scale: 1;
+}
+
+html, body {
+  background: transparent;
+  margin: 0;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+}
+
+#stage, #stage iframe {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+
+/* --- review modal: the prompt, front and center, while it's judged ------- */
+
+#modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 30;
+  /* no backdrop — the stream stays fully visible around the card; the card
+     itself is the only dark thing on screen while a prompt is on trial */
+}
+
+/* Compact judgment card — small centered panel, dark enough to read over
+   anything the stream throws behind it. */
+#modal .card {
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
+  border: 2px solid var(--accent);
+  border-radius: 1rem;
+  box-shadow: 0 0 4rem color-mix(in srgb, var(--accent) 45%, transparent);
+  max-width: 60vw;
+  padding: 2rem 2.5rem;
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+#modal.show .card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+#modal .badge {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  text-shadow: 0 0 0.6em color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+#modal .who {
+  display: block;
+  font-size: calc(0.9em * var(--scale));
+  color: #ffffffcc;
+  margin-top: 0.6em;
+}
+
+#modal .text {
+  font-size: calc(1.5em * var(--scale));
+  line-height: 1.35;
+  margin: 0.6em 0 0;
+  overflow-wrap: break-word;
+}
+
+#modal .cost {
+  display: block;
+  font-size: 0.8em;
+  color: #ffffff66;
+  margin-top: 1em;
+}
+
+/* --- agent reasoning ticker ---------------------------------------------- */
+
+/* Upper-left corner, visible only while the agent is processing, on a dark
+   scrim so it reads over anything the stream throws behind it. */
+
+#ticker {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  width: min(54rem, 82.5vw);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  font-family: ui-monospace, monospace;
+  font-size: calc(1.875rem * var(--scale));
+  line-height: 1.5;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  border-left: 4px solid var(--accent);
+  border-radius: 0.6rem;
+  padding: 1em 1.3em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 2rem rgba(0, 0, 0, 0.5);
+}
+
+/* the agent comments tail: clipped to its own area so the head row (rings +
+   prompt) always stays visible above it */
+#ticker-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  max-height: 42vh;
+}
+
+#ticker[hidden] {
+  display: none;
+}
+
+/* the thinking rings + the original redeem prompt, side by side */
+.ticker-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.15em 0.5em 0.55em 0.2em;
+}
+
+#ticker-prompt {
+  color: var(--accent);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* concentric rings — the "thinking" animation while the agent works */
+#ticker .rings {
+  position: relative;
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+}
+
+#ticker-prompt {
+  font-size: 0.8em;
+  color: var(--accent);
+  text-shadow: none;
+}
+
+#ticker-prompt[hidden] {
+  display: none;
+}
+
+#ticker-model {
+  font-size: 0.75em;
+  color: #9fb6d4;
+  text-shadow: none;
+}
+
+#ticker-model[hidden] {
+  display: none;
+}
+
+#ticker .rings span {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ticker-ring 2.1s linear infinite;
+}
+
+#ticker .rings span:nth-child(2) { animation-delay: 0.7s; }
+#ticker .rings span:nth-child(3) { animation-delay: 1.4s; }
+
+@keyframes ticker-ring {
+  0%   { transform: scale(0.35); opacity: 0.9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* --- SLOP COMPLETE! ------------------------------------------------------- */
+
+#complete {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#complete.show {
+  opacity: 1;
+}
+
+#complete h1 {
+  font-size: calc(6rem * var(--scale));
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-shadow:
+    0 0 0.3em color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 1.2em color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: stomp 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+  margin: 0;
+}
+
+@keyframes stomp {
+  0% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  pointer-events: none;
+}
+
+/* --- toasts --------------------------------------------------------------- */
+
+#toasts {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  align-items: flex-end;
+  z-index: 50;
+}
+
+/* ?debug=1 diagnostics chip */
+.debugchip {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 999;
+  font: 11px/1.4 monospace;
+  color: #9fe0ff;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(159, 224, 255, 0.4);
+  border-radius: 4px;
+  padding: 3px 8px;
+  max-width: 92vw;
+}
+
+.toast {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-right: 3px solid var(--accent);
+  border-radius: 0.4rem;
+  padding: 0.5em 0.9em;
+  font-size: calc(0.85rem * var(--scale));
+  opacity: 0;
+  transform: translateX(1rem);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.show { opacity: 1; transform: none; }
+.toast.gone { opacity: 0; }
+
+/* --- chat controls hint --------------------------------------------------------- */
+
+/* From the slop's meta.controls — tells viewers what to type while the slop
+   plays. Sits above the creator credit, bottom left. */
+
+#slop-corner {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+#slop-controls-hud {
+  font-size: calc(2.55rem * var(--scale));
+  line-height: 1.4;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: 0.4rem;
+  padding: 0.5em 1.1em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  white-space: pre-line; /* multi-line controls: description + command lines */
+}
+
+#slop-controls-hud[hidden] {
+  display: none;
+}
+
+/* --- creator credit ----------------------------------------------------------- */
+
+/* Who made the slop on screen — bottom left, on the same scrim recipe as the
+   agent comments ticker so it reads over anything. Visible for the whole play. */
+
+#slop-credit {
+  font-size: calc(2.55rem * var(--scale));
+  line-height: 1.4;
+  color: #eef2fb;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  border-right: 3px solid var(--accent);
+  border-radius: 0.4rem;
+  padding: 0.5em 1.1em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+#slop-credit[hidden] {
+  display: none;
+}

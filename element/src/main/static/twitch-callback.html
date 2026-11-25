@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>twitch-three-js — rewards authorization</title>
+  <style>
+    body { background: #0D1335; color: #fff; font-family: system-ui, sans-serif; max-width: 34rem; margin: 12vh auto; padding: 0 1.5rem; line-height: 1.6; }
+    h1 { color: #FF0099; }
+    code { background: #1a2150; padding: .15em .4em; border-radius: .3em; overflow-wrap: anywhere; }
+    .ok { color: #6effa8; }
+    .err { color: #ff5f7a; }
+    p.note { color: #ffffff99; font-size: .9em; }
+  </style>
+</head>
+<body>
+  <h1>Authorization</h1>
+  <p id="status">Exchanging the authorization code…</p>
+  <script>
+    (async () => {
+      const status = document.getElementById('status');
+      const params = new URLSearchParams(window.location.search);
+
+      if (params.get('error_description') || params.get('error')) {
+        status.className = 'err';
+        status.textContent = `Twitch refused the authorization: ${params.get('error_description') || params.get('error')}`;
+        return;
+      }
+
+      const code = params.get('code');
+      if (!code) {
+        status.className = 'err';
+        status.textContent = 'No authorization code came back — start again from /auth/twitch.';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/twitch/auth/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `exchange failed (${res.status})`);
+        status.className = 'ok';
+        status.innerHTML = `Connected as <strong>${data.broadcaster?.login ?? '?'}</strong> — channel point redemptions will now flow to the overlays.`;
+      } catch (err) {
+        status.className = 'err';
+        status.textContent = err.message;
+      }
+    })();
+  </script>
+</body>
+</html>

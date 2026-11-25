@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlopBot AI</title>
+<style>
+  :root {
+    --navy: #0d1335;
+    --pink: #ff0099;
+    --deep: #070b22;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(1200px 600px at 70% -10%, #1a2150 0%, var(--navy) 45%, var(--deep) 100%);
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 2rem;
+  }
+  .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: .02em; }
+  .logo em { color: var(--pink); font-style: normal; }
+  nav a { color: #c9d0f5; text-decoration: none; margin-left: 1.5rem; font-size: .95rem; }
+  nav a:hover { color: #fff; }
+  main {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 0 1.5rem 4rem;
+  }
+  h1 { font-size: clamp(2.2rem, 6vw, 4rem); margin: 0 0 .5rem; line-height: 1.1; }
+  h1 em { color: var(--pink); font-style: normal; }
+  p.tag { color: #c9d0f5; font-size: 1.15rem; max-width: 42rem; margin: 0 auto 2.5rem; line-height: 1.6; }
+  a.login {
+    display: inline-block;
+    background: var(--pink);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: .9rem 2.4rem;
+    border-radius: .6rem;
+    text-decoration: none;
+    box-shadow: 0 8px 30px rgba(255, 0, 153, .35);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  a.login:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(255, 0, 153, .45); }
+  .note { margin-top: 1.2rem; color: #8a93c9; font-size: .9rem; }
+  footer { padding: 1.2rem 2rem; color: #8a93c9; font-size: .85rem; display: flex; justify-content: space-between; }
+  footer a { color: #c9d0f5; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SlopBot <em>AI</em></div>
+  <nav>
+    <a href="/deck">Deck</a>
+    <a href="/slop">Overlay</a>
+  </nav>
+</header>
+<main>
+  <div>
+    <h1>Your chat builds the <em>slop</em>.<br>Your stream plays it.</h1>
+    <p class="tag">Viewers prompt an AI agent from chat, the agent codes a live
+    canvas slop in seconds, and it plays on your stream — with triggers,
+    cooldowns, a queue, and a deck you control. Log in with Twitch to open
+    your slop registry.</p>
+    <!-- Real Twitch OAuth login (ticket 02), per the Elements manual's
+         browser-redirect flow. The marketing landing page comes later. -->
+    <a class="login" href="/auth/login">Log in with Twitch</a>
+    <p class="note">Marketing landing page to come — this is the working door.</p>
+  </div>
+</main>
+<footer>
+  <span>SlopBot AI</span>
+  <span><a href="/deck">deck</a> · <a href="/slop">overlay</a></span>
+</footer>
+</body>
+</html>

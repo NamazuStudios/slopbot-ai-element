@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>twitch-three-js — slop</title>
+  <link rel="stylesheet" href="slop.css">
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="slop-corner">
+    <div id="slop-controls-hud" hidden></div>
+    <div id="slop-credit" hidden></div>
+  </div>
+  <div id="ticker" hidden>
+    <div class="ticker-head">
+      <div class="rings"><span></span><span></span><span></span></div>
+      <div id="ticker-prompt">building your slop…</div>
+    </div>
+    <div id="ticker-model" hidden></div>
+    <div id="ticker-text">building your slop…</div>
+  </div>
+  <div id="modal" hidden>
+    <div class="card">
+      <span class="badge">SLOP REVIEW</span>
+      <span class="who"></span>
+      <p class="text"></p>
+      <span class="cost"></span>
+    </div>
+  </div>
+  <div id="complete" hidden>
+    <h1>SLOP COMPLETE!</h1>
+  </div>
+  <canvas id="confetti"></canvas>
+  <div id="toasts"></div>
+  <script type="module" src="slop.js"></script>
+</body>
+</html>
