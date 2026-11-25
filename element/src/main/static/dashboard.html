@@ -10,12 +10,10 @@
 
   /* ---- left drawer ---- */
   aside {
-    width: 240px;
-    min-width: 240px;
+    width: 240px; min-width: 240px;
     background: rgba(7, 11, 34, .75);
     border-right: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
     padding: 1rem .8rem;
     transition: width .18s ease, min-width .18s ease;
     min-height: 100vh;
@@ -26,8 +24,7 @@
   nav { display: flex; flex-direction: column; gap: .25rem; }
   nav a, nav button {
     display: flex; align-items: center; gap: .7rem;
-    padding: .6rem .7rem;
-    border-radius: 10px;
+    padding: .6rem .7rem; border-radius: 10px;
     border: 0; background: transparent;
     color: var(--muted); font: inherit; font-weight: 600; font-size: .92rem;
     text-decoration: none; cursor: pointer; text-align: left; width: 100%;
@@ -62,28 +59,91 @@
     background: #0a0f2c; color: var(--text); font: 13px/1.5 ui-monospace, monospace; padding: .8rem;
   }
   label.f { display: block; margin: .8rem 0 .25rem; color: var(--muted); font-size: .85rem; }
-  input.t {
+  input.t, select.t {
     width: 100%; border-radius: 8px; border: 1px solid var(--line);
     background: #0a0f2c; color: var(--text); padding: .55rem .7rem; font: inherit;
   }
 
   /* settings */
-  .settings { max-width: 640px; display: flex; flex-direction: column; gap: 1rem; }
+  .settings { max-width: 720px; display: flex; flex-direction: column; gap: .9rem; }
+  .settings .card { padding: .9rem 1.1rem; }
   .settings .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .settings .row .lab b { display: block; }
   .settings .row .lab span { color: var(--muted); font-size: .82rem; }
-  .toggle { width: 44px; height: 24px; border-radius: 999px; background: var(--line); position: relative; border: 0; cursor: pointer; }
+  .toggle { width: 44px; height: 24px; border-radius: 999px; background: var(--line); position: relative; border: 0; cursor: pointer; flex: none; }
   .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
   .toggle.on { background: var(--pink); }
   .toggle.on::after { left: 23px; }
 
-  /* account */
-  .account { max-width: 560px; }
-  .profile-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-  .profile-head .avatar { width: 64px; height: 64px; }
-  .profile-head h2 { margin: 0; font-size: 1.2rem; }
-  .profile-head .sub { color: var(--muted); font-size: .88rem; }
-  .kv { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  /* expandable advanced areas */
+  .expand { display: none; margin-top: .9rem; }
+  .card.expanded .expand { display: block; }
+  .expand-label {
+    display: inline-flex; align-items: center; gap: .45rem;
+    color: var(--muted); font-size: .8rem; cursor: pointer; user-select: none;
+    border: 1px solid var(--line); border-radius: 8px; padding: .3rem .7rem;
+  }
+  .expand-label:hover { color: #fff; border-color: var(--pink); }
+  .expand textarea { min-height: 90px; margin-top: .6rem; }
+
+  /* build-trigger options */
+  .trigger-opts { display: flex; flex-direction: column; gap: .55rem; margin-top: .7rem; }
+  .trigger-opt {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem;
+    background: rgba(10, 15, 44, .5);
+  }
+  .trigger-opt .lab b { display: block; font-size: .9rem; }
+  .trigger-opt .lab span { color: var(--muted); font-size: .78rem; }
+  .who-opts { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .6rem; }
+  .who-opt {
+    border: 1px solid var(--line); border-radius: 999px; padding: .3rem .85rem;
+    font-size: .8rem; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none;
+  }
+  .who-opt.on { border-color: var(--pink); color: #fff; background: rgba(255, 0, 153, .18); }
+  .who-row { display: none; margin-top: .6rem; }
+  .trigger-opt.expanded .who-row { display: block; }
+  .who-row .who-label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .4rem; }
+
+  /* cam picker */
+  .cam-wrap { margin-top: .8rem; }
+  .cam-stage {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line);
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px),
+      radial-gradient(600px 300px at 30% 20%, #1a2150 0%, transparent 60%),
+      linear-gradient(160deg, #131a45 0%, #0a0f2c 70%);
+    user-select: none; touch-action: none;
+  }
+  .cam-stage .live {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(7, 11, 34, .8); border: 1px solid var(--line);
+    border-radius: 6px; padding: .15rem .5rem;
+    font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: #ff5c5c;
+  }
+  .cam-stage .scene { position: absolute; inset: 0; display: grid; place-items: center; color: #2c376f; font-weight: 800; letter-spacing: .2em; font-size: .9rem; }
+  .cam-rect {
+    position: absolute;
+    border: 2px dashed var(--pink);
+    background: rgba(255, 0, 153, .12);
+    cursor: move;
+    box-shadow: 0 0 0 1px rgba(255, 0, 153, .25), 0 8px 24px rgba(255, 0, 153, .15);
+  }
+  .cam-rect .cam-tag {
+    position: absolute; top: -22px; left: 0;
+    font-size: .68rem; font-weight: 800; letter-spacing: .08em; color: var(--pink-soft);
+    white-space: nowrap;
+  }
+  .cam-handle {
+    position: absolute; right: -6px; bottom: -6px;
+    width: 14px; height: 14px; border-radius: 4px;
+    background: var(--pink); border: 2px solid #fff;
+    cursor: nwse-resize;
+  }
+  .cam-readout { display: flex; gap: .8rem; margin-top: .5rem; color: var(--muted); font-size: .78rem; font-family: ui-monospace, monospace; }
+  .cam-readout b { color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -143,13 +203,105 @@ export function frame(ctx, t, dt) {}</textarea>
   <!-- SETTINGS -->
   <section class="pane" id="pane-settings">
     <div class="settings">
-      <div class="card row"><div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div><button class="toggle on"></button></div>
-      <div class="card row"><div class="lab"><b>Redemption trigger</b><span>Channel-point redemptions can start builds</span></div><button class="toggle on"></button></div>
-      <div class="card row"><div class="lab"><b>Moderation level</b><span>teen · the tier every build is judged against</span></div><span class="chip">teen</span></div>
-      <div class="card row"><div class="lab"><b>Max slop seconds</b><span>The hard ceiling per play</span></div><input class="t" style="width:90px" value="60"></div>
-      <div class="card row"><div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div><input class="t" style="width:90px" value="10"></div>
-      <div class="card row"><div class="lab"><b>Streamer cam</b><span>Where your camera sits on the canvas (0–1)</span></div><input class="t" style="width:180px" value="0.72, 0.55, 0.22, 0.4"></div>
-      <div style="display:flex; gap:.6rem;"><button class="btn">Save settings</button><button class="btn ghost">Reset</button></div>
+
+      <div class="card row">
+        <div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div>
+        <button class="toggle on"></button>
+      </div>
+
+      <div class="card row">
+        <div class="lab"><b>Default generation model</b><span>The model every build runs on (Hyper-metered)</span></div>
+        <select class="t" style="width:240px">
+          <option>Hyper · GLM 5.3 Flash</option>
+          <option>Hyper · Qwen3 8B</option>
+          <option>Hyper · auto (fastest available)</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="lab"><b>Build triggers</b><span>How the chat can start a build — several may be on at once</span></div>
+        </div>
+        <div class="trigger-opts">
+          <div class="trigger-opt">
+            <div class="lab"><b>Channel-point redeem</b><span>Viewers redeem the configured reward</span></div>
+            <button class="toggle on"></button>
+          </div>
+          <div class="trigger-opt">
+            <div class="lab"><b>Gift subscription</b><span>A gifted sub starts a build</span></div>
+            <button class="toggle"></button>
+          </div>
+          <div class="trigger-opt" id="trigger-chat">
+            <div>
+              <div class="lab"><b>Chat command</b><span>A chat command starts a build</span></div>
+              <div class="who-row">
+                <div class="who-label">who can use it</div>
+                <div class="who-opts">
+                  <span class="who-opt on">Everyone</span>
+                  <span class="who-opt">VIPs</span>
+                  <span class="who-opt">Mods</span>
+                  <span class="who-opt">Streamer</span>
+                </div>
+              </div>
+            </div>
+            <button class="toggle on"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="moderation-card">
+        <div class="row">
+          <div class="lab"><b>Moderation level</b><span>teen · the tier every build is judged against</span></div>
+          <div style="display:flex; align-items:center; gap:.8rem;">
+            <span class="chip">teen</span>
+            <label class="expand-label" id="mod-advanced-toggle">⚙︎ advanced</label>
+          </div>
+        </div>
+        <div class="expand" id="mod-advanced">
+          <label class="f">Additional moderation instructions</label>
+          <textarea placeholder="e.g. no alcohol references, keep rivalries friendly — these pass directly into the moderation prompt"></textarea>
+          <div class="cam-readout">These instructions pass directly into the agent's instructions for how to moderate.</div>
+        </div>
+      </div>
+
+      <div class="card" id="agent-instructions-card">
+        <div class="row">
+          <div class="lab"><b>Additional agent instructions</b><span>Passed to the agent on every build</span></div>
+          <label class="expand-label" id="agent-instructions-toggle">＋ add</label>
+        </div>
+        <div class="expand" id="agent-instructions">
+          <label class="f">Agent instructions</label>
+          <textarea placeholder="e.g. lean into late-night chat in-jokes; never use the rainbow palette"></textarea>
+        </div>
+      </div>
+
+      <div class="card" id="cam-card">
+        <div class="row">
+          <div class="lab"><b>Streamer cam</b><span>Where your camera sits on the canvas — drag to place, corner to resize</span></div>
+        </div>
+        <div class="cam-wrap">
+          <div class="cam-stage" id="cam-stage">
+            <span class="live">● LIVE</span>
+            <div class="scene">STREAM PREVIEW</div>
+            <div class="cam-rect" id="cam-rect">
+              <span class="cam-tag">CAM</span>
+              <span class="cam-handle" id="cam-handle"></span>
+            </div>
+          </div>
+          <div class="cam-readout">
+            <span>x <b id="cam-x">0.72</b></span>
+            <span>y <b id="cam-y">0.55</b></span>
+            <span>w <b id="cam-w">0.22</b></span>
+            <span>h <b id="cam-h">0.40</b></span>
+            <span style="margin-left:auto"><button class="btn ghost" style="padding:.25rem .7rem; font-size:.75rem;" id="cam-reset">reset</button></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:.6rem;">
+        <button class="btn">Save settings</button>
+        <button class="btn ghost">Reset</button>
+      </div>
     </div>
   </section>
 
@@ -203,7 +355,72 @@ export function frame(ctx, t, dt) {}</textarea>
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
   });
-  document.querySelectorAll('.toggle').forEach((t) => t.addEventListener('click', () => t.classList.toggle('on')));
+
+  // Simple on/off toggles
+  document.querySelectorAll('.settings .toggle, .trigger-opt > .toggle').forEach((t) => {
+    t.addEventListener('click', () => t.classList.toggle('on'));
+  });
+
+  // The chat-command trigger: expanding it reveals the who-options.
+  const chatRow = document.getElementById('trigger-chat');
+  chatRow.querySelector('.toggle').addEventListener('click', () => chatRow.classList.toggle('expanded'));
+  chatRow.classList.add('expanded');
+  document.querySelectorAll('.who-opt').forEach((o) => o.addEventListener('click', () => o.classList.toggle('on')));
+
+  // Expandable advanced cards
+  document.getElementById('mod-advanced-toggle').addEventListener('click', () =>
+    document.getElementById('moderation-card').classList.toggle('expanded'));
+  document.getElementById('agent-instructions-toggle').addEventListener('click', () =>
+    document.getElementById('agent-instructions-card').classList.toggle('expanded'));
+
+  // ---- the streamer cam picker: drag to place, corner to resize (0–1) ----
+  const stage = document.getElementById('cam-stage');
+  const rect = document.getElementById('cam-rect');
+  const handle = document.getElementById('cam-handle');
+  const readout = { x: document.getElementById('cam-x'), y: document.getElementById('cam-y'), w: document.getElementById('cam-w'), h: document.getElementById('cam-h') };
+  const cam = { x: .72, y: .55, w: .22, h: .40 };
+
+  function renderCam() {
+    rect.style.left = (cam.x * 100) + '%';
+    rect.style.top = (cam.y * 100) + '%';
+    rect.style.width = (cam.w * 100) + '%';
+    rect.style.height = (cam.h * 100) + '%';
+    readout.x.textContent = cam.x.toFixed(2);
+    readout.y.textContent = cam.y.toFixed(2);
+    readout.w.textContent = cam.w.toFixed(2);
+    readout.h.textContent = cam.h.toFixed(2);
+  }
+  function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+  let drag = null; // {mode: 'move'|'resize', startX, startY, cam0}
+  stage.addEventListener('pointerdown', (e) => {
+    const r = stage.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const onHandle = e.target === handle;
+    drag = { mode: onHandle ? 'resize' : 'move', startX: px, startY: py, cam0: { ...cam } };
+    stage.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const r = stage.getBoundingClientRect();
+    const dx = (e.clientX - r.left) / r.width - drag.startX;
+    const dy = (e.clientY - r.top) / r.height - drag.startY;
+    if (drag.mode === 'move') {
+      cam.x = clamp01(drag.cam0.x + dx);
+      cam.y = clamp01(drag.cam0.y + dy);
+    } else {
+      cam.w = Math.min(1 - cam.x, Math.max(.05, drag.cam0.w + dx));
+      cam.h = Math.min(1 - cam.y, Math.max(.05, drag.cam0.h + dy));
+    }
+    renderCam();
+  });
+  stage.addEventListener('pointerup', () => { drag = null; });
+  document.getElementById('cam-reset').addEventListener('click', () => {
+    cam.x = .72; cam.y = .55; cam.w = .22; cam.h = .40; renderCam();
+  });
+  renderCam();
 </script>
 </body>
 </html>
