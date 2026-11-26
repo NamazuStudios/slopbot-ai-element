@@ -32,6 +32,54 @@ class SlopPodRegistry @Inject constructor(
 
     private fun now(): Long = System.currentTimeMillis()
 
+    /**
+     * The Conductor dispatch call, built from the element's attributes
+     * (conductor.url / credential / profile / provider). Returns null when
+     * unconfigured — the dispatch lays the lease only and the build waits
+     * (fail-open, logged). Every dispatch path uses this: the engine hooks
+     * and any future caller carry the real POST /jobs automatically.
+     */
+    private fun conductorFn(): ((String, String, String) -> Any?)? {
+        val element = dev.getelements.elements.sdk.ElementSupplier
+            .getElementLocal(SlopPodRegistry::class.java).get()
+        val attrs = element.getElementRecord().attributes()
+        fun attr(name: String): String? =
+            attrs.getAttributeOptional(name)?.let { opt ->
+                val raw = opt.toString()
+                val unwrapped = Regex("^Optional\\[(.*)\\]$").find(raw)?.groupValues?.get(1) ?: raw
+                unwrapped.takeIf { it.isNotEmpty() }
+            }
+        val url = attr("dev.slopbot.element.conductor.url") ?: return null
+        val credential = attr("dev.slopbot.element.conductor.credential") ?: return null
+        val profile = attr("dev.slopbot.element.conductor.profile") ?: "slopbot-pod"
+        val provider = attr("dev.slopbot.element.conductor.provider") ?: "dev.getelements.conductor.kubernetes"
+        return { streamer, token, mode ->
+            try {
+                val body = mapOf(
+                    "element" to provider,
+                    "profileId" to profile,
+                    "environment" to mapOf(
+                        "SLOP_POD_TOKEN" to token,
+                        "SLOP_POD_STREAMER" to streamer,
+                        "SLOP_POD_MODE" to mode,
+                    ),
+                )
+                val client = java.net.http.HttpClient.newHttpClient()
+                val req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url.trimEnd('/') + "/jobs"))
+                    .header("Authorization", "Bearer $credential")
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
+                        com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body)))
+                    .build()
+                val resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString())
+                mapOf("status" to resp.statusCode(), "body" to resp.body().take(200))
+            } catch (e: Exception) {
+                mapOf("error" to (e.message ?: e.toString()))
+            }
+        }
+    }
+
     /** The per-pod token's hash — the raw token is returned ONCE at dispatch. */
     private fun hash(token: String): String =
         MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) }
@@ -57,7 +105,7 @@ class SlopPodRegistry @Inject constructor(
         streamer: String,
         mode: String,
         reason: String,
-        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)? = null,
+        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)? = conductorFn(),
     ): Map<String, Any?> {
         val s = streamer.lowercase()
         leaseDao.liveLease(s)?.let { lease ->

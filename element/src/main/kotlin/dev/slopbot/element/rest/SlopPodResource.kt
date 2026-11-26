@@ -101,53 +101,6 @@ class SlopPodResource {
         ).build()
     }
 
-    /**
-     * The Conductor dispatch — wired when the element attributes name the
-     * admin API and credential; without them the hook returns null and the
-     * dispatch lays the lease only (the build waits, fail-open, logged).
-     */
-    private fun conductorFn(): ((String, String, String) -> Any?)? {
-        val element = element
-        val attrs = element.getElementRecord().attributes()
-        fun attr(name: String): String? =
-            attrs.getAttributeOptional(name)?.let { opt ->
-                val raw = opt.toString()
-                // Attributes Optional.toString() is "Optional[value]" — unwrap it
-                val unwrapped = Regex("^Optional\\[(.*)\\]$").find(raw)?.groupValues?.get(1) ?: raw
-                unwrapped.takeIf { it.isNotEmpty() }
-            }
-        val url = attr(SlopApplication.CONDUCTOR_URL) ?: return null
-        val credential = attr(SlopApplication.CONDUCTOR_CREDENTIAL) ?: return null
-        val profile = attr(SlopApplication.CONDUCTOR_PROFILE) ?: "slopbot-pod"
-        val provider = attr(SlopApplication.CONDUCTOR_PROVIDER) ?: "dev.getelements.conductor.kubernetes"
-        return { streamer, token, mode ->
-            try {
-                val body = mapOf(
-                    "element" to provider,
-                    "profileId" to profile,
-                    "environment" to mapOf(
-                        "SLOP_ELM_URL" to "",   // the bound instance URL — the element attributes carry it
-                        "SLOP_POD_TOKEN" to token,
-                        "SLOP_POD_STREAMER" to streamer,
-                        "SLOP_POD_MODE" to mode,
-                    ),
-                )
-                val client = java.net.http.HttpClient.newHttpClient()
-                val req = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(url.trimEnd('/') + "/jobs"))
-                    .header("Authorization", "Bearer $credential")
-                    .header("Content-Type", "application/json")
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
-                        com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body)))
-                    .build()
-                val resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString())
-                mapOf("status" to resp.statusCode(), "body" to resp.body().take(200))
-            } catch (e: Exception) {
-                mapOf("error" to (e.message ?: e.toString()))
-            }
-        }
-    }
-
     private fun unauthorized(): WebApplicationException =
         WebApplicationException(Response.status(401).entity(mapOf("error" to "pod authentication required")).build())
 }
