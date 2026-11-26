@@ -22,8 +22,10 @@ import jakarta.servlet.http.HttpServletRequest
  * the lease at dispatch and matched here. Fail closed: no lease, wrong
  * token, or a superseded pod → 401/409.
  *
- * The dispatch route is SUPERUSER-only (the operator's manual trigger, and
- * the path the engine's hook would otherwise drive).
+ * Dispatch is ENGINE-ONLY: the two designed triggers (the first queued
+ * slop; go-live) call SlopPodRegistry.dispatch in-process — there is no
+ * REST dispatch route (removed: an extra trigger outside the designed
+ * set, and a superuser call that spawns infrastructure).
  */
 @Path("/pod")
 @Produces(MediaType.APPLICATION_JSON)
@@ -81,19 +83,6 @@ class SlopPodResource {
         val streamer = body?.get("streamer")?.toString() ?: throw unauthorized()
         val podInstanceId = body?.get("podInstanceId")?.toString() ?: throw unauthorized()
         return Response.ok(mapOf("ok" to registry.release(streamer, podInstanceId))).build()
-    }
-
-    /** The superuser's manual dispatch (the engine's build trigger drives the same call). */
-    @POST
-    @Path("dispatch")
-    @Consumes(MediaType.APPLICATION_JSON)
-    fun dispatch(body: Map<String, Any?>?, @Context request: HttpServletRequest): Response {
-        auth.requireSuperuser()
-        val streamer = body?.get("streamer")?.toString()
-            ?: throw WebApplicationException(Response.status(400).entity(mapOf("error" to "streamer is required")).build())
-        val mode = body?.get("mode")?.toString() ?: "build"
-        val result = registry.dispatch(streamer, mode, body?.get("reason")?.toString() ?: "manual dispatch", conductorFn())
-        return Response.ok(result).build()
     }
 
     /** The current lease (superuser diagnostics). */
