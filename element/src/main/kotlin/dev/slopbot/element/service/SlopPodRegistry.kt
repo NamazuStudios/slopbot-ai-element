@@ -28,56 +28,63 @@ class PodEvictedException(val streamer: String, val holder: PodLease) :
 @Singleton
 class SlopPodRegistry @Inject constructor(
     private val leaseDao: SlopPodLeaseDao,
+    private val twitchAuthDao: dev.slopbot.element.dao.SlopTwitchAuthDao,
 ) {
 
     private fun now(): Long = System.currentTimeMillis()
 
     /**
-     * The Conductor dispatch call, built from the element's attributes
-     * (conductor.url / credential / profile / provider). Returns null when
-     * unconfigured — the dispatch lays the lease only and the build waits
-     * (fail-open, logged). Every dispatch path uses this: the engine hooks
-     * and any future caller carry the real POST /jobs automatically.
+     * The Conductor dispatch (designer ruling: NO service credential — the
+     * provider runs Fabric8 with the pod's identity). The kubernetes
+     * provider element is deployed alongside and exports
+     * OrchestrationService; we resolve it through the element registry and
+     * execute a JobRequest against the `slopbot-pod` profile directly.
      */
-    private fun conductorFn(): ((String, String, String) -> Any?)? {
+    private fun dispatchViaConductor(streamer: String, token: String, mode: String): Any? {
+        // The streamer's bot authorization (if any) — the Twitch credentials the
+        // worker needs for chat write + EventSub. Missing = anonymous chat
+        // capture, EventSub dormant (the reference's graceful degradation).
+        val twitchEnv = twitchAuthDao.findByStreamer(streamer)?.let { auth -> mapOf(
+            "SLOP_TWITCH_USERNAME" to (auth.broadcasterLogin),
+            "SLOP_TWITCH_OAUTH_TOKEN" to (auth.accessToken),
+            "SLOP_TWITCH_BROADCASTER_ID" to (auth.broadcasterId),
+        )} ?: emptyMap()
+        // The conductor provider is a SIBLING element. From this element's
+        // own registry, find it by name and take its locator.
+        val element = dev.getelements.elements.sdk.ElementSupplier
+            .getElementLocal(SlopPodRegistry::class.java).get()
+        val conductorElement = element.getElementRegistry()
+            .find("dev.getelements.conductor.kubernetes")
+            .findFirst()
+            .orElseThrow { IllegalStateException("the conductor kubernetes provider is not deployed") }
+        val orchestration = conductorElement.getServiceLocator()
+            .getInstance(dev.getelements.conductor.service.OrchestrationService::class.java)
+        val profile = orchestration.findAvailableProfile("slopbot-pod")
+            ?: return mapOf("error" to "no such profile: slopbot-pod (is the PodTemplate labeled with the provider's job set?)")
+        val execution = orchestration.execute(
+            dev.getelements.conductor.JobRequest(
+                profile = profile,
+                environment = twitchEnv + mapOf(
+                    "SLOP_ELM_URL" to elmUrl(),
+                    "SLOP_POD_TOKEN" to token,
+                    "SLOP_POD_STREAMER" to streamer,
+                    "SLOP_POD_MODE" to mode,
+                ),
+            )
+        )
+        return mapOf("executionId" to execution.id, "status" to execution.status.toString())
+    }
+
+    /** The ELM's own REST root, for the pod's lease calls. */
+    private fun elmUrl(): String {
         val element = dev.getelements.elements.sdk.ElementSupplier
             .getElementLocal(SlopPodRegistry::class.java).get()
         val attrs = element.getElementRecord().attributes()
-        fun attr(name: String): String? =
-            attrs.getAttributeOptional(name)?.let { opt ->
-                val raw = opt.toString()
-                val unwrapped = Regex("^Optional\\[(.*)\\]$").find(raw)?.groupValues?.get(1) ?: raw
-                unwrapped.takeIf { it.isNotEmpty() }
-            }
-        val url = attr("dev.slopbot.element.conductor.url") ?: return null
-        val credential = attr("dev.slopbot.element.conductor.credential") ?: return null
-        val profile = attr("dev.slopbot.element.conductor.profile") ?: "slopbot-pod"
-        val provider = attr("dev.slopbot.element.conductor.provider") ?: "dev.getelements.conductor.kubernetes"
-        return { streamer, token, mode ->
-            try {
-                val body = mapOf(
-                    "element" to provider,
-                    "profileId" to profile,
-                    "environment" to mapOf(
-                        "SLOP_POD_TOKEN" to token,
-                        "SLOP_POD_STREAMER" to streamer,
-                        "SLOP_POD_MODE" to mode,
-                    ),
-                )
-                val client = java.net.http.HttpClient.newHttpClient()
-                val req = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(url.trimEnd('/') + "/jobs"))
-                    .header("Authorization", "Bearer $credential")
-                    .header("Content-Type", "application/json")
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
-                        com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body)))
-                    .build()
-                val resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString())
-                mapOf("status" to resp.statusCode(), "body" to resp.body().take(200))
-            } catch (e: Exception) {
-                mapOf("error" to (e.message ?: e.toString()))
-            }
-        }
+        val raw = attrs.getAttributeOptional("dev.slopbot.element.elm.url")?.toString() ?: ""
+        val unwrapped = Regex("^\\{\\s*\"value\"\\s*:\\s*\"(.*)\"\\s*\\}\\s*$").find(raw)?.groupValues?.get(1)
+            ?: Regex("^Optional\\[(.*)\\]$").find(raw)?.groupValues?.get(1)
+            ?: raw.takeIf { it != "Optional.empty" }
+        return (unwrapped ?: "").takeIf { it.isNotEmpty() } ?: "http://localhost:8080"
     }
 
     /** The per-pod token's hash — the raw token is returned ONCE at dispatch. */
@@ -105,7 +112,7 @@ class SlopPodRegistry @Inject constructor(
         streamer: String,
         mode: String,
         reason: String,
-        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)? = conductorFn(),
+        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)? = ::dispatchViaConductor,
     ): Map<String, Any?> {
         val s = streamer.lowercase()
         leaseDao.liveLease(s)?.let { lease ->

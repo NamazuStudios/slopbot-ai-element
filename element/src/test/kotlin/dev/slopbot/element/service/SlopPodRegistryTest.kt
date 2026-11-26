@@ -16,7 +16,12 @@ import org.junit.jupiter.api.Test
  */
 class SlopPodRegistryTest {
 
-    private val registry = SlopPodRegistry(InMemorySlopPodLeaseDao())
+        private val twitchDao = object : dev.slopbot.element.dao.SlopTwitchAuthDao {
+        override fun findByStreamer(streamer: String) = null
+        override fun put(auth: dev.slopbot.element.model.TwitchAuth) = auth
+        override fun delete(streamer: String) {}
+    }
+    private val registry = SlopPodRegistry(InMemorySlopPodLeaseDao(), twitchDao)
 
     @Test
     fun `dispatch lays a DISPATCHED lease and returns the token once`() {

@@ -32,6 +32,7 @@
 @ElementService(dev.slopbot.element.service.SlopAssetAdmin.class)
 @ElementService(dev.slopbot.element.rest.SlopAuth.class)
 @ElementService(dev.slopbot.element.service.SlopPodRegistry.class)
+@ElementService(dev.slopbot.element.dao.SlopTwitchAuthDao.class)
 @ElementService(dev.slopbot.element.mcp.McpHandler.class)
 @ElementService(dev.slopbot.element.mcp.OidcValidator.class)
 @ElementService(dev.slopbot.element.ws.PodWebsocketClient.class)

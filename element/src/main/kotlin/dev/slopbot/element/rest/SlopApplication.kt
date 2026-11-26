@@ -98,6 +98,7 @@ class SlopApplication : Application() {
         SlopResource::class.java,
         SlopSessionResource::class.java,
         SlopPodResource::class.java,
+        TwitchAuthorizeResource::class.java,
         AdminResource::class.java,
         SlopAssetAdminResource::class.java,
         McpResource::class.java,

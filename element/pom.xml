@@ -61,6 +61,14 @@
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- The Conductor API — the OrchestrationService contract. The
+             kubernetes provider element (deployed alongside) implements it
+             with Fabric8 using the pod's identity (no credentials). -->
+        <dependency>
+            <groupId>dev.getelements.conductor</groupId>
+            <artifactId>api</artifactId>
+            <version>1.2.21</version>
+        </dependency>
         <!-- Guice. The version recommended and tested with Namazu Elements -->
         <dependency>
             <groupId>com.google.inject</groupId>

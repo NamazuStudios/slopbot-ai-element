@@ -104,7 +104,12 @@ class SlopEngine @Inject constructor(
         if (streamerLogin.isNullOrBlank()) return
         try {
             val r = podRegistry?.dispatch(streamerLogin, mode, reason)
-            if (r?.get("dispatched") == true) log.info("pod dispatched for {} ({})", streamerLogin, reason)
+            if (r?.get("dispatched") == true) {
+                log.info("pod dispatched for {} ({}): conductor={}, podToken delivered via the dispatch env",
+                    streamerLogin, reason, r["conductor"])
+                if (r["conductor"]?.let { c -> (c as? Map<*, *>)?.containsKey("error") } == true)
+                    log.warn("the Conductor call failed inside the dispatch: {}", r["conductor"])
+            }
         } catch (e: Exception) {
             log.warn("pod dispatch failed (the build keeps waiting): {}", e.toString())
         }
@@ -1155,6 +1160,7 @@ class SlopEngine @Inject constructor(
         queue[item.id] = item
         buildQueue.addLast(item.id)
         events.broadcast("queue", mapOf("queue" to queue.values.toList()))
+        maybeDispatchPod(item.user?.login, "build", "the first slop queued")
         startNextBuild()
         return true
     }
@@ -1163,6 +1169,14 @@ class SlopEngine @Inject constructor(
         // One build at a time — the `generation` slot. When the slot is free and
         // jobs are waiting, the oldest queued job becomes the generation; the
         // agent (the MCP client) consumes it.
+        generation?.let { gen ->
+            // The watchdog: a build in the slot older than the window never
+            // advanced (no agent took it) — fail it so the queue drains.
+            if (now() - gen.startedAt > 300_000L) {
+                log.warn("generation {} exceeded the watchdog — failing it", gen.itemId)
+                failGeneration("no agent took the build within the watchdog window")
+            }
+        }
         if (generation != null) return
         while (buildQueue.isNotEmpty()) {
             val id = buildQueue.removeFirst()
