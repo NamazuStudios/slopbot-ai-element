@@ -8,8 +8,10 @@ import dev.slopbot.element.dao.SlopAuditor
 import dev.slopbot.element.dao.SlopDao
 import dev.slopbot.element.dao.SlopHistoryDao
 import dev.slopbot.element.dao.SlopPodLeaseDao
+import dev.slopbot.element.dao.SlopOverlayKeyDao
 import dev.slopbot.element.dao.SlopTwitchAuthDao
 import dev.slopbot.element.dao.StandardSlopPodLeaseDao
+import dev.slopbot.element.dao.StandardSlopOverlayKeyDao
 import dev.slopbot.element.dao.StandardSlopTwitchAuthDao
 import dev.slopbot.element.dao.SourceStore
 import dev.slopbot.element.dao.StandardSlopAssetDao
@@ -98,6 +100,7 @@ class SlopModule : PrivateModule() {
         // Resolved lazily through the ServiceLocator per request instead, so
         // each request constructs SlopAuth inside its own scope.
         bind(SlopPodLeaseDao::class.java).to(StandardSlopPodLeaseDao::class.java)
+        bind(SlopOverlayKeyDao::class.java).to(StandardSlopOverlayKeyDao::class.java)
         bind(SlopTwitchAuthDao::class.java).to(StandardSlopTwitchAuthDao::class.java)
         bind(SlopPodRegistry::class.java).asEagerSingleton()
         bind(SlopAuth::class.java)
@@ -120,6 +123,7 @@ class SlopModule : PrivateModule() {
         expose(SlopEvents::class.java)
         expose(SlopDao::class.java)
         expose(SlopTwitchAuthDao::class.java)
+        expose(SlopOverlayKeyDao::class.java)
         expose(SlopAuditDao::class.java)
         expose(SlopAuditor::class.java)
         expose(SlopAssetAdmin::class.java)

@@ -291,6 +291,10 @@
       <button class="copy-link" data-copy="/slop-play.html" title="copy link to this screen">⧉</button>
       <span class="ic">📺</span><span class="navlabel">Slop</span><span class="out-arrow">↗</span>
     </a>
+    <a href="/slop.html" id="overlay-link" target="_blank" rel="opener">
+      <button class="copy-link" id="overlay-copy" data-copy="" title="copy the OBS browser-source URL">⧉</button>
+      <span class="ic">🖼️</span><span class="navlabel">Overlay</span><span class="out-arrow">↗</span>
+    </a>
   </nav>
   <button class="ghost btn collapse-btn" id="collapse">⟨⟩</button>
 </aside>
@@ -529,6 +533,19 @@
         <div class="set-row">
           <div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div>
           <div class="set-ctl"><input class="set-input num" id="queue-depth" value="10" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="card set-card" id="overlay-card">
+        <div class="set-row">
+          <div class="lab"><b>Overlay</b><span>the OBS browser-source URL — the keyed feed of your plays</span></div>
+          <div class="set-ctl">
+            <button class="btn ghost" id="overlay-copy-btn" style="padding:.35rem .8rem">⧉ copy URL</button>
+            <button class="btn ghost" id="overlay-rotate-btn" style="padding:.35rem .8rem" title="invalidate every existing browser source">↻ regenerate key</button>
+          </div>
+        </div>
+        <div class="set-body" style="display:block; margin-top:.6rem;">
+          <input class="set-input" id="overlay-url" readonly style="width:100%; font-family:ui-monospace, monospace; font-size:.8rem;">
         </div>
       </div>
 
@@ -1456,6 +1473,42 @@
     ME = await SLOP.me();
     await loadSnapshot();
     if (SNAPSHOT) liveEvents();
+    // The overlay URL (the keyed OBS browser source): the drawer chip +
+    // the Settings row, and the regenerate action.
+    try {
+      const ov = await SLOP.api('/slop/api/slop/overlay/url');
+      const url = location.origin + ov.url;
+      const overlayCopy = document.getElementById('overlay-copy');
+      if (overlayCopy) {
+        overlayCopy.dataset.copy = url;
+        overlayCopy.addEventListener('click', async (e) => {
+          e.preventDefault(); e.stopPropagation();
+          try { await navigator.clipboard.writeText(url); overlayCopy.textContent = '✓'; } catch (_) { overlayCopy.textContent = '✕'; }
+          setTimeout(() => { overlayCopy.textContent = '⧉'; }, 1500);
+        });
+      }
+      const copyBtn = document.getElementById('overlay-copy-btn');
+      const urlInput = document.getElementById('overlay-url');
+      if (urlInput) urlInput.value = url;
+      copyBtn?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(url); copyBtn.textContent = '✓ copied'; } catch (_) { copyBtn.textContent = '✕'; }
+        setTimeout(() => { copyBtn.textContent = '⧉ copy URL'; }, 1500);
+      });
+      document.getElementById('overlay-rotate-btn')?.addEventListener('click', async () => {
+        const yes = await window.slopConfirm('Regenerate the overlay key?', 'Every OBS browser source using the old URL stops working — paste the new URL into OBS.', 'Regenerate');
+        if (!yes) return;
+        try {
+          const rotated = await SLOP.api('/slop/api/slop/overlay/rotate', { method: 'POST' });
+          const newUrl = location.origin + rotated.url;
+          if (urlInput) urlInput.value = newUrl;
+          if (overlayCopy) overlayCopy.dataset.copy = newUrl;
+          try { await navigator.clipboard.writeText(newUrl); } catch (_) {}
+          SLOP.toast('Overlay key regenerated — the new URL is on your clipboard.');
+        } catch (e) {
+          SLOP.toast('Regenerate failed: ' + e.message, true);
+        }
+      });
+    } catch (e) { /* anonymous — the overlay stays unkeyed */ }
   })();
   loadMe();
 </script>

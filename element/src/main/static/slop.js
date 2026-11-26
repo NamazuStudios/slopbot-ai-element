@@ -192,7 +192,9 @@ function boot() {
   const params = new URLSearchParams(window.location.search);
   // The event feed lives on its own port so it never competes with page
   // loads for connection slots (see server.js). ?feed= overrides.
-  feedOrigin = params.get('feed') || `${location.protocol}//${location.hostname}:3010`;
+  // The ELM serves the event feed on the SAME origin (/slop/api) — the
+  // monolith's :3010 feed port is gone with the thin-forwarder split.
+  feedOrigin = params.get('feed') || `${location.protocol}//${location.host}`;
   document.documentElement.style.setProperty('--accent', hexColor(params.get('accent'), '#ff0099'));
   document.documentElement.style.setProperty('--bg', hexColor(params.get('bg'), '#0d1335'));
   document.documentElement.style.setProperty('--scale', String(clampNumber(params.get('scale'), 1, 0.5, 3)));
@@ -331,7 +333,14 @@ function boot() {
     }
   }, 1000);
 
-  const source = new EventSource(feedOrigin + "/slop/api/slop/events");
+  // The keyed overlay: the OBS URL carries ?stream=<login>&k=<overlay-key> —
+  // pass both through so the ELM validates the browser source (403 on a
+  // wrong/rotated key).
+  const overlayStream = params.get('stream');
+  const overlayKey = params.get('k');
+  const eventsUrl = feedOrigin + "/slop/api/slop/events" +
+    ((overlayStream && overlayKey) ? `?stream=${encodeURIComponent(overlayStream)}&k=${encodeURIComponent(overlayKey)}` : "");
+  const source = new EventSource(eventsUrl);
   if (params.get('debug')) {
     debugChip = document.createElement('div');
     debugChip.className = 'debugchip';

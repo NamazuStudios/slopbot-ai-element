@@ -1,7 +1,9 @@
 package dev.slopbot.element.rest
 
 import dev.slopbot.element.dao.SlopDao
+import dev.slopbot.element.dao.SlopOverlayKeyDao
 import dev.slopbot.element.engine.SlopEvents
+import dev.slopbot.element.model.OverlayKey
 import dev.slopbot.element.model.Participant
 import dev.slopbot.element.service.SlopEngine
 import dev.getelements.elements.sdk.Element
@@ -42,6 +44,7 @@ class SlopResource {
     private val events: SlopEvents by lazy { element.getServiceLocator().getInstance(SlopEvents::class.java) }
     private val slopDao: SlopDao by lazy { element.getServiceLocator().getInstance(SlopDao::class.java) }
     private val auth: SlopAuth by lazy { element.getServiceLocator().getInstance(SlopAuth::class.java) }
+    private val overlayKeys: SlopOverlayKeyDao by lazy { element.getServiceLocator().getInstance(SlopOverlayKeyDao::class.java) }
 
     // --- open (overlay) routes -----------------------------------------------------
 
@@ -49,12 +52,72 @@ class SlopResource {
     fun snapshot(@QueryParam("streamer") streamer: String?): Response =
         Response.ok(engine.snapshotMap()).build()
 
+    /** The streamer's overlay URL — creates the key on first use. Session-authed. */
+    @GET
+    @Path("/overlay/url")
+    fun overlayUrl(@Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        val user = auth.requireAuthenticated(request)
+        val login = user.name ?: throw SlopAuth.unauthorized()
+        var stored = overlayKeys.findByStreamer(login)
+        if (stored == null) {
+            val bytes = ByteArray(32)
+            java.security.SecureRandom().nextBytes(bytes)
+            stored = OverlayKey().apply {
+                streamer = login
+                key = bytes.joinToString("") { "%02x".format(it) }
+                createdAt = System.currentTimeMillis()
+            }
+            overlayKeys.put(stored)
+        }
+        return Response.ok(
+            mapOf(
+                "streamer" to login,
+                "key" to stored.key,
+                "url" to "/slop.html?stream=$login&k=${stored.key}",
+            )
+        ).build()
+    }
+
+    /** Rotate the overlay key — every existing browser source is invalidated. */
+    @POST
+    @Path("/overlay/rotate")
+    fun rotateOverlay(@Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        val user = auth.requireAuthenticated(request)
+        val login = user.name ?: throw SlopAuth.unauthorized()
+        val bytes = ByteArray(32)
+        java.security.SecureRandom().nextBytes(bytes)
+        val key = bytes.joinToString("") { "%02x".format(it) }
+        val existing = overlayKeys.findByStreamer(login)
+        val doc = existing ?: OverlayKey().apply { streamer = login; createdAt = System.currentTimeMillis() }
+        doc.key = key
+        overlayKeys.put(doc)
+        return Response.ok(
+            mapOf("streamer" to login, "key" to key, "url" to "/slop.html?stream=$login&k=$key")
+        ).build()
+    }
+
     @GET
     @Path("/events")
     @Produces("text/event-stream")
-    fun events(): Response {
-        val stream = StreamingOutput { output -> streamEvents(output) }
-        return Response.ok(stream)
+    fun events(
+        @QueryParam("stream") stream: String?,
+        @QueryParam("k") overlayKey: String?,
+    ): Response {
+        // The overlay's keyed path (Pod Boot Mechanics §overlay): the OBS
+        // browser source carries ?stream=<login>&k=<overlay-key> — the key is
+        // validated against the streamer's stored overlay key and a mismatch
+        // is refused (the keyed overlay never sees the stream without it).
+        // The unkeyed path stays the dashboard's own (session or open view).
+        if (!stream.isNullOrBlank() && !overlayKey.isNullOrBlank()) {
+            val stored = overlayKeys.findByStreamer(stream)?.key
+            if (stored == null || stored != overlayKey) {
+                // status-only: the class @Produces is text/event-stream — a JSON
+                // entity has no writer there (the OBS source just sees the refusal)
+                return Response.status(403).build()
+            }
+        }
+        val streamOut = StreamingOutput { output -> streamEvents(output) }
+        return Response.ok(streamOut)
             .header("Cache-Control", "no-cache, no-transform")
             .build()
     }
