@@ -655,6 +655,7 @@
       el.innerHTML = `<div class="slop-inner"><h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
         <div class="row"><span class="pill ${disabled ? 'disabled' : s.state}">${disabled ? 'disabled' : s.state}</span>${s.nsfw ? '<span class="pill rejected">nsfw</span>' : ''}
           <span style="display:flex; gap:.4rem;">
+            ${s.state === 'pending' ? `<button class="btn ghost" style="padding:.3rem .6rem" data-approve="${s.name}" title="approve — it can air">✓</button><button class="btn ghost" style="padding:.3rem .6rem" data-reject="${s.name}" title="reject — stays out of plays">✕</button>` : ''}
             <button class="btn ghost" style="padding:.3rem .6rem" data-play="${s.short}" title="play now">▶</button>
             <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.name}" title="Preview + triggers">⚙</button>
             <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.name}" title="delete">🗑</button>
@@ -912,6 +913,20 @@
       glass.classList.add('asking');
       glass.innerHTML = '<span class="tag">sure?</span><span class="ask"><b data-yes>yes</b><b data-no>no</b></span>';
       glass._t = setTimeout(renderSlops, 3000);
+      return;
+    }
+    const approve = e.target.closest('[data-approve]');
+    if (approve) {
+      SLOP.api(`/slop/api/slop/pending/approve/${encodeURIComponent(approve.dataset.approve)}`, { method: 'POST' })
+        .then(() => { SLOP.toast('Approved — it can air.'); return loadSnapshot(); })
+        .catch((e) => SLOP.toast('Approve failed: ' + e.message, true));
+      return;
+    }
+    const reject = e.target.closest('[data-reject]');
+    if (reject) {
+      SLOP.api(`/slop/api/slop/pending/reject/${encodeURIComponent(reject.dataset.reject)}`, { method: 'POST' })
+        .then(() => { SLOP.toast('Rejected — it stays out of plays.'); return loadSnapshot(); })
+        .catch((e) => SLOP.toast('Reject failed: ' + e.message, true));
       return;
     }
     const play = e.target.closest('[data-play]');
@@ -1287,7 +1302,7 @@
     if (ovs[2]?.classList.contains('expanded')) body.agentNotes = ovs[2].querySelector('textarea').value;
     if (ovs[3]?.classList.contains('expanded')) body.maxSeconds = Number(ovs[3].querySelector('input').value) || 60;
     try {
-      await SLOP.api('/slop/api/slop/build', { body });
+      await SLOP.api('/slop/api/slop/generate', { body });
       SLOP.toast('Build queued — watch the build queue.');
       document.getElementById('build-prompt').value = '';
     } catch (e) {

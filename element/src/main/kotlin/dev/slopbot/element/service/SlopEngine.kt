@@ -48,6 +48,8 @@ data class QueueItem(
     var model: String = "",
     var target: Target? = null,
     var reason: String? = null,
+    /** The workshop's per-build overrides (moderationLevel/model/agentNotes/maxSeconds). */
+    var overrides: Map<String, Any?>? = null,
 ) {
     data class Target(var name: String = "", var mode: String = "")
 }
@@ -680,6 +682,15 @@ class SlopEngine @Inject constructor(
             mapOf("name" to name, "title" to doc.displayName, "author" to meta.author, "pending" to true),
         )
         events.broadcast("registry", mapOf("registered" to registered.values.toList()))
+        // A successful creation IS the build's completion (Phase C): the
+        // generation slot frees and the queue advances.
+        val gen = generation
+        if (gen != null) {
+            generation = null
+            queue[gen.itemId]?.let { it.status = "complete" }
+            events.broadcast("queue", mapOf("queue" to queue.values.toList()))
+            startNextBuild()
+        }
         return name
     }
 
@@ -1086,25 +1097,37 @@ class SlopEngine @Inject constructor(
     }
 
     /** The deck's direct line: build a slop from the deck, no redeem/review. */
-    fun buildDirect(text: String?): Boolean {
+    fun buildDirect(text: String?): Boolean = generate(text = text, user = null, overrides = null)
+
+    /**
+     * The formal build entry (POST /slop/api/slop/generate): the prompt is
+     * attributed to the session user and carries their per-build overrides
+     * (the workshop's toggle cards). `buildDirect` is the un-attributed form.
+     */
+    fun generate(text: String?, user: Participant?, overrides: Map<String, Any?>?): Boolean {
         val input = (text ?: "").trim()
         if (input.isEmpty()) {
             events.broadcast("note", mapOf("text" to "give the slop a prompt first"))
             return false
         }
-        val author = config.snapshot()["channel"]?.toString()?.ifEmpty { "streamer" } ?: "streamer"
+        val author = user?.login
+            ?: config.snapshot()["channel"]?.toString()?.ifEmpty { "streamer" }
+            ?: "streamer"
         val item = QueueItem(
-            id = "slop-${now().toString(36)}-${seq.getAndIncrement()}",
+            id = "slop-" + now().toString(36) + "-" + seq.getAndIncrement(),
             at = now(),
-            user = Participant(id = "0", login = author, displayName = author),
+            user = user ?: Participant(id = "0", login = author, displayName = author),
             input = input,
             rewardTitle = "Deck build",
             rewardCost = 0,
             synthetic = true,
             status = "buildqueued",
-            model = (config.snapshot()["model"]?.toString() ?: "").ifEmpty { "agent default" },
+            model = (overrides?.get("model") ?: config.snapshot()["model"])?.toString()?.ifEmpty { "agent default" }
+                ?: "agent default",
+            overrides = overrides,
         )
         queue[item.id] = item
+        buildQueue.addLast(item.id)
         events.broadcast("queue", mapOf("queue" to queue.values.toList()))
         startNextBuild()
         return true
@@ -1127,6 +1150,57 @@ class SlopEngine @Inject constructor(
     }
 
     fun takeGeneration(): Generation? = generation
+
+    /**
+     * The agent's build brief (Phase C): everything the in-pod agent needs
+     * to generate — the prompt, the model, the moderation tier IN EFFECT
+     * (its rules verbatim), the streamer's additional moderation
+     * instructions, the agent instructions, and the per-build overrides.
+     * Taking the brief leaves the item "generating" (idempotent — the same
+     * brief until the build completes or fails).
+     */
+    fun generationBrief(): Map<String, Any?>? {
+        val gen = generation ?: return null
+        val item = queue[gen.itemId]
+        val snap = config.snapshot()
+        val level = (item?.overrides?.get("moderationLevel") as? String) ?: snap["moderationLevel"]?.toString() ?: "teen"
+        val brief = linkedMapOf<String, Any?>(
+            "itemId" to gen.itemId,
+            "prompt" to (item?.input ?: gen.text),
+            "model" to (item?.overrides?.get("model") ?: gen.model ?: ""),
+            "user" to mapOf(
+                "login" to (item?.user?.login ?: ""),
+                "displayName" to (item?.user?.displayName ?: ""),
+            ),
+            "moderation" to mapOf(
+                "level" to level,
+                "rules" to (config.moderationLevels[level] ?: ""),
+                "additionalInstructions" to (item?.overrides?.get("agentNotes")
+                    ?: snap["customRules"] ?: "").toString(),
+            ),
+            "agentInstructions" to (snap["agentInstructions"] ?: "").toString(),
+            "allowedTriggers" to snap["allowedTriggers"],
+            "maxSeconds" to (item?.overrides?.get("maxSeconds") ?: snap["maxSlopSeconds"]),
+        )
+        return brief
+    }
+
+    /** The agent reports a build failure: the slot frees, the item fails visibly. */
+    fun failGeneration(reason: String?): Boolean {
+        val gen = generation ?: return false
+        val item = queue[gen.itemId]
+        generation = null
+        if (item != null) {
+            item.status = "failed"
+            item.reason = reason ?: "the agent reported a failure"
+            history.addFirst(item)
+            if (history.size > 50) history.removeLast()
+        }
+        events.broadcast("note", mapOf("text" to ("build failed: " + (reason ?: "agent failure"))))
+        events.broadcast("queue", mapOf("queue" to queue.values.toList()))
+        startNextBuild()
+        return true
+    }
 
     // --- triggers save ---------------------------------------------------------------
 

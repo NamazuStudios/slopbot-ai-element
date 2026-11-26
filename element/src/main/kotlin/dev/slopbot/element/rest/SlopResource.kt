@@ -2,6 +2,7 @@ package dev.slopbot.element.rest
 
 import dev.slopbot.element.dao.SlopDao
 import dev.slopbot.element.engine.SlopEvents
+import dev.slopbot.element.model.Participant
 import dev.slopbot.element.service.SlopEngine
 import dev.getelements.elements.sdk.Element
 import dev.getelements.elements.sdk.ElementSupplier
@@ -320,5 +321,65 @@ class SlopResource {
     fun build(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
         auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.buildDirect(body?.get("text")?.toString()))).build()
+    }
+
+    /** The formal build entry: the session user is the creator, the workshop's
+     *  per-build overrides ride along. */
+    @POST
+    @Path("/generate")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun generate(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        val user = auth.requireStreamerOrSuperuser(request)
+        val overrides = linkedMapOf<String, Any?>()
+        body?.get("moderationLevel")?.let { overrides["moderationLevel"] = it }
+        body?.get("model")?.let { overrides["model"] = it }
+        body?.get("agentNotes")?.let { overrides["agentNotes"] = it }
+        body?.get("maxSeconds")?.let { overrides["maxSeconds"] = it }
+        return Response.ok(
+            mapOf("ok" to engine.generate(
+                text = body?.get("text")?.toString(),
+                user = Participant(login = user.name, displayName = user.displayName),
+                overrides = overrides.ifEmpty { null },
+            ))
+        ).build()
+    }
+
+    /** The agent's build brief — the same payload the MCP builds.next verb
+     *  returns, streamer-scoped so a human (or the dashboard) can drive the
+     *  loop without the pod's OIDC chain. */
+    @POST
+    @Path("/builds/next")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun buildsNext(@Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
+        val brief = engine.generationBrief()
+        return Response.ok(brief ?: mapOf("empty" to true, "message" to "no build is waiting")).build()
+    }
+
+    /** The agent reports a build failure (the manual path of MCP builds.fail). */
+    @POST
+    @Path("/builds/fail")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun buildsFail(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
+        return Response.ok(mapOf("ok" to engine.failGeneration(body?.get("reason")?.toString()))).build()
+    }
+
+    /** The manual build path: create a slop from code directly (the same
+     *  bouncer + meta pipeline the MCP slops.create verb runs). The demo's
+     *  agent stand-in; the pod's real path stays MCP. */
+    @POST
+    @Path("/create")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun create(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        val user = auth.requireStreamerOrSuperuser(request)
+        val code = body?.get("code")?.toString()
+            ?: throw WebApplicationException(Response.status(400).entity(mapOf("error" to "code is required")).build())
+        val name = engine.createSlop(
+            code = code,
+            creator = Participant(login = user.name, displayName = user.displayName),
+            streamerLogin = user.name ?: "",
+        )
+        return Response.ok(mapOf("name" to name, "moderation" to "PENDING")).build()
     }
 }

@@ -354,7 +354,7 @@ class McpSurfaceTest {
             tools.call("assets.read", mapOf("name" to "shared/huge"), "savorysailor")
         }
         assertTrue(e.message!!.contains("8 MiB cap"))
-        // The tool list carries exactly the 8 verbs.
-        assertEquals(8, McpTools.TOOLS.size)
+        // The tool list: the 8 original verbs + the two build-loop verbs.
+        assertEquals(10, McpTools.TOOLS.size)
     }
 }

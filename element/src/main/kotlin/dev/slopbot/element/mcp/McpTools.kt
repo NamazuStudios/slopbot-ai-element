@@ -134,6 +134,19 @@ class McpTools @Inject constructor(
                 ),
             ),
             mapOf(
+                "name" to "builds.next",
+                "description" to "Take the next queued slop build. Returns the full brief: the prompt, the moderation tier in effect (its rules verbatim), the streamer's additional moderation instructions, the agent instructions, the model, and the per-build overrides. Creates nothing on its own — generate the slop code, then call slops.create (which completes the build).",
+                "inputSchema" to mapOf("type" to "object", "properties" to emptyMap<String, Any?>()),
+            ),
+            mapOf(
+                "name" to "builds.fail",
+                "description" to "Report that the taken build failed (the slot frees and the queue advances).",
+                "inputSchema" to mapOf(
+                    "type" to "object",
+                    "properties" to mapOf("reason" to mapOf("type" to "string")),
+                ),
+            ),
+            mapOf(
                 "name" to "assets.list",
                 "description" to ("Every asset available to the tenant (the shared pool tagged 'shared'), " +
                     "with kind/mime/size."),
@@ -173,6 +186,12 @@ class McpTools @Inject constructor(
             "slops.read" -> read(arguments, streamer)
             "slops.create" -> create(arguments, streamer)
             "slops.update" -> update(arguments, streamer)
+            "builds.next" -> engine.generationBrief()
+                ?: mapOf("empty" to true, "message" to "no build is waiting — the queue advances when a prompt arrives")
+            "builds.fail" -> {
+                val ok = engine.failGeneration(arguments["reason"]?.toString())
+                mapOf("ok" to ok)
+            }
             "assets.list" -> assetsList(streamer)
             "assets.read" -> assetsRead(arguments)
             "slops.submitModeration" -> submitModeration(arguments, streamer)
