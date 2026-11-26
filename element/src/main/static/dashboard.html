@@ -1166,24 +1166,41 @@
     const id = localStorage.getItem('slopAttempt');
     if (!id) return;
     localStorage.removeItem('slopAttempt');
+    const status = document.createElement('div');
+    status.className = 'card';
+    status.style.cssText = 'position:fixed; bottom:1rem; right:1rem; z-index:60; padding:.6rem 1rem; font-size:.85rem; color:var(--muted)';
+    document.body.appendChild(status);
+    const say = (t) => { status.textContent = 'Login: ' + t; console.info('[slopbot login]', t); };
     for (let i = 0; i < 60; i++) {
       try {
+        say('checking Twitch authorization…');
         const res = await fetch(`/api/rest/oidc/session/${id}`);
-        if (res.status === 404) return; // expired/already consumed — give up quietly
+        if (res.status === 404) { say('login attempt expired — please try again from the landing page'); return; }
         const attempt = await res.json();
-        if (attempt.status === 'FAILED') { console.warn('login failed:', attempt.reason); return; }
+        if (attempt.status === 'FAILED') { say('Twitch login failed: ' + (attempt.reason || 'denied')); return; }
         if (attempt.status === 'COMPLETE') {
+          say('authorized — adopting session…');
+          const secret = attempt.session?.sessionSecret ?? attempt.session;
           const adopt = await fetch('/slop/api/session/adopt', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionSecret: attempt.session.sessionSecret ?? attempt.session }),
+            body: JSON.stringify({ sessionSecret: secret }),
           });
-          if (adopt.ok) { location.reload(); }
+          if (!adopt.ok) {
+            // fallback: a JS-set cookie still authenticates every /slop/api call
+            document.cookie = `slop_session=${secret}; Path=/; Secure; SameSite=Lax`;
+            console.warn('[slopbot login] adopt failed (' + adopt.status + ') — used the fallback cookie');
+          }
+          say('connected ✓');
+          setTimeout(() => location.reload(), 400);
           return;
         }
-      } catch (_) { /* transient — keep polling */ }
+      } catch (e) {
+        say('network hiccup — retrying…');
+      }
       await new Promise((r) => setTimeout(r, 1500));
     }
+    say('timed out waiting for Twitch — try again from the landing page');
   }
 
   async function loadMe() {
@@ -1192,14 +1209,20 @@
       if (res.status === 401) return; // anonymous — the demo continues with placeholders
       const me = await res.json();
       SESSION = me;
+      const t = me.twitch || {};
+      const pic = t.picture || '';
+      const avatar = pic
+        ? `<img src="${pic}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
+        : '<div class="avatar"></div>';
       const who = document.querySelector('.page-head .who');
+      who.querySelector('.avatar').outerHTML = avatar;
       who.querySelector('span').textContent = me.displayName || me.name || 'streamer';
       const t = me.twitch || {};
       document.getElementById('pane-account').innerHTML = `
         <div class="account" style="max-width:560px;">
           <div class="card">
             <div class="profile-head" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-              <div class="avatar" style="width:64px; height:64px;"></div>
+              ${pic ? `<img src="${pic}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover">` : '<div class="avatar" style="width:64px; height:64px;"></div>'}
               <div><h2 style="margin:0; font-size:1.2rem;">${me.displayName || me.name}</h2>
                 <div style="color:var(--muted); font-size:.88rem;">twitch.tv/${t.preferred_username || me.name} · connected with Twitch</div></div>
             </div>

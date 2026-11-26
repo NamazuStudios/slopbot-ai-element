@@ -79,28 +79,41 @@
   <span>pink #ff0099 · navy #0d1335</span>
 </footer>
 <script>
-  // Twitch login via the CORE OIDC flow: start the attempt server-side,
-  // keep its id for the dashboard's poll, and open the authorize URL.
-  document.getElementById('twitch-login').addEventListener('click', async () => {
+  // Landing: the button is state-aware. Already logged in (a valid
+  // slop_session cookie) → "Go to Dashboard"; otherwise start the CORE
+  // OIDC flow: begin the attempt server-side, keep its id for the
+  // dashboard's poll, and open the authorize URL.
+  (async () => {
     const btn = document.getElementById('twitch-login');
-    btn.disabled = true;
-    btn.textContent = 'Talking to Twitch…';
+    let loggedIn = false;
     try {
-      const res = await fetch('/api/rest/oidc/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'twitch' }),
-      });
-      if (!res.ok) throw new Error('could not start the login (' + res.status + ')');
-      const attempt = await res.json();
-      localStorage.setItem('slopAttempt', attempt.id);
-      location.href = attempt.authorizeUrl;
-    } catch (e) {
-      btn.disabled = false;
-      btn.textContent = 'Login with Twitch';
-      alert('Login could not start: ' + e.message);
+      const me = await fetch('/slop/api/me');
+      if (me.ok) loggedIn = true;
+    } catch (_) { /* anonymous */ }
+    if (loggedIn) {
+      btn.textContent = 'Go to Dashboard';
     }
-  });
+    btn.addEventListener('click', async () => {
+      if (loggedIn) { location.href = 'dashboard.html'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Talking to Twitch…';
+      try {
+        const res = await fetch('/api/rest/oidc/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'twitch' }),
+        });
+        if (!res.ok) throw new Error('could not start the login (' + res.status + ')');
+        const attempt = await res.json();
+        localStorage.setItem('slopAttempt', attempt.id);
+        location.href = attempt.authorizeUrl;
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Login with Twitch';
+        alert('Login could not start: ' + e.message);
+      }
+    });
+  })();
 </script>
 </body>
 </html>

@@ -84,4 +84,18 @@ class SlopSessionResource {
         "Set-Cookie",
         "$SESSION_COOKIE=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0"
     ).build()
+
+    /**
+     * The designer's registered OAuth redirect (the URL in the Twitch app's
+     * console) points here; the CORE OIDC callback lives elsewhere. Hand
+     * the whole query (code, state — and Twitch error params) to core's
+     * callback untouched; the browser follows.
+     */
+    @GET
+    @Path("auth/callback")
+    fun legacyCallback(@jakarta.ws.rs.core.Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        val q = request.queryString
+        val target = "/api/rest/oidc/twitch/callback" + (if (q.isNullOrBlank()) "" else "?$q")
+        return Response.temporaryRedirect(java.net.URI(target)).build()
+    }
 }
