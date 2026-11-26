@@ -57,7 +57,7 @@ class SlopPodRegistry @Inject constructor(
         streamer: String,
         mode: String,
         reason: String,
-        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)?,
+        dispatchFn: ((streamer: String, token: String, mode: String) -> Any?)? = null,
     ): Map<String, Any?> {
         val s = streamer.lowercase()
         leaseDao.liveLease(s)?.let { lease ->

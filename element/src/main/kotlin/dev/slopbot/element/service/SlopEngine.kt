@@ -6,6 +6,7 @@ import dev.slopbot.api.slop.SlopSnapshot
 import dev.slopbot.api.slop.SlopSummary
 import dev.slopbot.api.slop.SlopTriggerEvent
 import dev.slopbot.element.dao.SlopAssetDao
+import dev.getelements.elements.sdk.ElementSupplier
 import dev.slopbot.element.dao.SlopDao
 import dev.slopbot.element.dao.SlopHistoryDao
 import dev.slopbot.element.dao.SlopModification
@@ -85,6 +86,29 @@ class SlopEngine @Inject constructor(
 ) : SlopEngineService {
 
     private val log = org.slf4j.LoggerFactory.getLogger(SlopEngine::class.java)
+
+    // The pod dispatcher (Pod Boot Mechanics): the first queued slop and the
+    // stream-live notice both fire it. Fail-open — a build never blocks on a
+    // dispatch failure; the lease is best-effort.
+    private val podRegistry: SlopPodRegistry? by lazy {
+        try {
+            ElementSupplier.getElementLocal(SlopEngine::class.java).get()
+                .getServiceLocator().getInstance(SlopPodRegistry::class.java)
+        } catch (e: Exception) {
+            log.warn("pod registry unavailable — dispatch disabled: {}", e.toString())
+            null
+        }
+    }
+
+    private fun maybeDispatchPod(streamerLogin: String?, mode: String, reason: String) {
+        if (streamerLogin.isNullOrBlank()) return
+        try {
+            val r = podRegistry?.dispatch(streamerLogin, mode, reason)
+            if (r?.get("dispatched") == true) log.info("pod dispatched for {} ({})", streamerLogin, reason)
+        } catch (e: Exception) {
+            log.warn("pod dispatch failed (the build keeps waiting): {}", e.toString())
+        }
+    }
 
     private fun now(): Long = System.currentTimeMillis()
     private val random = java.util.Random()
@@ -683,11 +707,13 @@ class SlopEngine @Inject constructor(
         )
         events.broadcast("registry", mapOf("registered" to registered.values.toList()))
         // A successful creation IS the build's completion (Phase C): the
-        // generation slot frees and the queue advances.
+        // generation slot frees, the queue advances, and the build-mode pod
+        // is told its work is done (the worker exits 0 on 'buildDone').
         val gen = generation
         if (gen != null) {
             generation = null
             queue[gen.itemId]?.let { it.status = "complete" }
+            events.broadcast("buildDone", mapOf("itemId" to gen.itemId, "name" to name))
             events.broadcast("queue", mapOf("queue" to queue.values.toList()))
             startNextBuild()
         }
@@ -1145,6 +1171,7 @@ class SlopEngine @Inject constructor(
             generation = Generation(itemId = id, startedAt = now(), text = item.input, model = item.model)
             item.status = "generating"
             events.broadcast("queue", mapOf("queue" to queue.values.toList()))
+            maybeDispatchPod(item.user?.login, "build", "the first slop queued")
             return
         }
     }
@@ -1353,6 +1380,7 @@ class SlopEngine @Inject constructor(
         streamLive = true
         events.broadcast("stream", mapOf("live" to true))
         events.broadcast("note", mapOf("text" to "the stream is live — triggers armed"))
+        maybeDispatchPod(config.snapshot()["channel"]?.toString(), "stream", "the streamer went live")
     }
 
     /** Stream-end notice from the pod: triggers idle; the queue drains. */

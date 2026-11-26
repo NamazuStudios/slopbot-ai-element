@@ -32,7 +32,7 @@ class PodWsProtocol @Inject constructor(
 
     companion object {
         /** The engine event types relayed to the pod as playback commands. */
-        val RELAYED_TYPES = setOf("play", "stageclear", "plays", "note", "stream")
+        val RELAYED_TYPES = setOf("play", "stageclear", "plays", "note", "stream", "buildDone")
 
         /** The streamed event types passed through to pages raw (design passthrough). */
         val PASSTHROUGH_TYPES = setOf("chat", "follow", "sub", "resub", "subgift", "raid", "cheer", "redemption")
