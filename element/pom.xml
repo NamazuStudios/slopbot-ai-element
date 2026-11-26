@@ -53,6 +53,14 @@
             <groupId>dev.getelements.elements</groupId>
             <artifactId>sdk-mongo</artifactId>
         </dependency>
+        <!-- The servlet API (the session surface reads the adopted cookie off
+             the request). Provided at runtime by Jetty; package-info requests
+             the packages for the element's classloader. -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!-- Guice. The version recommended and tested with Namazu Elements -->
         <dependency>
             <groupId>com.google.inject</groupId>

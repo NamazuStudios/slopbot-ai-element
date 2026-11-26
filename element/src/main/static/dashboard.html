@@ -1157,5 +1157,65 @@
   });
   renderCam();
 </script>
+<script>
+  // ---------- session: finish the CORE OIDC flow, adopt the cookie, whoami ----------
+  // The attempt id rides localStorage across the Twitch redirect (core's
+  // successRedirectUrl lands back here). COMPLETE is returned exactly once.
+  let SESSION = null;
+  async function finishLogin() {
+    const id = localStorage.getItem('slopAttempt');
+    if (!id) return;
+    localStorage.removeItem('slopAttempt');
+    for (let i = 0; i < 60; i++) {
+      try {
+        const res = await fetch(`/api/rest/oidc/session/${id}`);
+        if (res.status === 404) return; // expired/already consumed — give up quietly
+        const attempt = await res.json();
+        if (attempt.status === 'FAILED') { console.warn('login failed:', attempt.reason); return; }
+        if (attempt.status === 'COMPLETE') {
+          const adopt = await fetch('/slop/api/session/adopt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionSecret: attempt.session.sessionSecret ?? attempt.session }),
+          });
+          if (adopt.ok) { location.reload(); }
+          return;
+        }
+      } catch (_) { /* transient — keep polling */ }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+
+  async function loadMe() {
+    try {
+      const res = await fetch('/slop/api/me');
+      if (res.status === 401) return; // anonymous — the demo continues with placeholders
+      const me = await res.json();
+      SESSION = me;
+      const who = document.querySelector('.page-head .who');
+      who.querySelector('span').textContent = me.displayName || me.name || 'streamer';
+      const t = me.twitch || {};
+      document.getElementById('pane-account').innerHTML = `
+        <div class="account" style="max-width:560px;">
+          <div class="card">
+            <div class="profile-head" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+              <div class="avatar" style="width:64px; height:64px;"></div>
+              <div><h2 style="margin:0; font-size:1.2rem;">${me.displayName || me.name}</h2>
+                <div style="color:var(--muted); font-size:.88rem;">twitch.tv/${t.preferred_username || me.name} · connected with Twitch</div></div>
+            </div>
+            <div class="kv" style="display:grid; grid-template-columns:1fr 1fr; gap:.8rem;">
+              <div class="card"><h3>Channel</h3>${t.preferred_username || me.name}</div>
+              <div class="card"><h3>Plan</h3>${me.superuser ? 'SUPERUSER' : 'slopbot.gg'}</div>
+              <div class="card"><h3>Logged in as</h3>${me.name}</div>
+              <div class="card"><h3>Slops owned</h3>${document.querySelectorAll('.slop-card').length}</div>
+            </div>
+          </div>
+        </div>`;
+    } catch (_) { /* offline — placeholders stand */ }
+  }
+
+  finishLogin();
+  loadMe();
+</script>
 </body>
 </html>

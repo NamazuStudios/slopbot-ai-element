@@ -1,6 +1,7 @@
 package dev.slopbot.element.rest
 
 import dev.getelements.elements.sdk.model.user.User
+import dev.getelements.elements.sdk.service.auth.SessionService
 import dev.getelements.elements.sdk.service.user.UserService
 import dev.getelements.elements.sdk.Element
 import dev.getelements.elements.sdk.ElementSupplier
@@ -25,6 +26,7 @@ import jakarta.ws.rs.core.Response
  */
 class SlopAuth @Inject constructor(
     private val userService: UserService,
+    private val sessionService: SessionService,
 ) {
 
     /** The acting-identity header — impersonation rides here for superusers. */
@@ -44,6 +46,44 @@ class SlopAuth @Inject constructor(
         if (user.level == User.Level.UNPRIVILEGED) null else user
     } catch (e: Exception) {
         null
+    }
+
+    /**
+     * Cookie-aware variant: the header session first (the platform's own
+     * mechanism), then the adopted `slop_session` cookie — the dashboard's
+     * browser flow authenticates by cookie, and the servlet auth chain only
+     * reads headers (HttpServletSessionIdAuthenticationFilter), so the
+     * cookie is resolved here, validated through the platform's
+     * [SessionService] (fail closed on anything unknown/expired).
+     */
+    fun currentUser(request: jakarta.servlet.http.HttpServletRequest?): User? {
+        currentUser()?.let { return it }
+        if (request == null) return null
+        val cookie = request.cookies?.firstOrNull { it.name == SlopSessionResource.SESSION_COOKIE }?.value
+            ?: return null
+        return try {
+            val session = sessionService.checkAndRefreshSessionIfNecessary(cookie)
+            session.user
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Validates a session secret for adoption (the cookie flow). Returns
+     * the validated user, or null when the secret is blank/unknown/expired
+     * (fail closed — the caller answers 401). The validation refreshes the
+     * session expiry, which is exactly what a login should do.
+     */
+    fun adoptSession(secret: String?): Pair<User, String>? {
+        if (secret.isNullOrBlank()) return null
+        return try {
+            val session = sessionService.checkAndRefreshSessionIfNecessary(secret)
+            val user = session.user ?: return null
+            user to secret
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun isSuperuser(user: User?): Boolean = user != null && user.level == User.Level.SUPERUSER

@@ -49,6 +49,10 @@
 //   with the runtime's shared ObjectMapper).
 @ElementPackageRequest("java.net.http")
 @ElementPackageRequest("com.fasterxml.jackson.databind")
+// The session surface resolves the adopted cookie directly off the servlet
+// request (SlopAuth.currentUser(request)) — request the servlet API.
+@ElementPackageRequest("jakarta.servlet")
+@ElementPackageRequest("jakarta.servlet.http")
 package dev.slopbot.element;
 
 import dev.getelements.elements.sdk.annotation.ElementDefinition;

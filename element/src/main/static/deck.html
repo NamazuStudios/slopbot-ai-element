@@ -92,6 +92,12 @@
   </section>
 </main>
 
+<script>
+  // Session-gated (unique to the logged-in streamer): no session → landing.
+  fetch('/slop/api/me').then((r) => {
+    if (r.status === 401) location.href = 'index.html?login=required';
+  }).catch(() => {});
+</script>
 <script src="slop-confirm.js"></script>
 <script src="deck-lite.js"></script>
 </body>

@@ -49,7 +49,7 @@ class SlopResource {
         Response.ok(engine.snapshotMap()).build()
 
     @GET
-    @Path("/slop/events")
+    @Path("/events")
     @Produces("text/event-stream")
     fun events(): Response {
         val stream = StreamingOutput { output -> streamEvents(output) }
@@ -94,7 +94,7 @@ class SlopResource {
         com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload)
 
     @GET
-    @Path("/slop/bundle/{name}")
+    @Path("/bundle/{name}")
     fun bundle(@PathParam("name") name: String, @QueryParam("chained") chained: String?, @QueryParam("playId") playId: String?): Response =
         try {
             Response.ok(engine.bundle(name, chained == "1", playId)).build()
@@ -103,7 +103,7 @@ class SlopResource {
         }
 
     @POST
-    @Path("/slop/play/{name}")
+    @Path("/play/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     fun play(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
         // Cameo requests from a playing slop's sandbox — routed through the
@@ -135,14 +135,14 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/plays/heartbeat")
+    @Path("/plays/heartbeat")
     fun heartbeat(): Response {
         engine.noteOverlayAlive()
         return Response.ok(mapOf("ok" to true)).build()
     }
 
     @POST
-    @Path("/slop/ended")
+    @Path("/ended")
     @Consumes(MediaType.APPLICATION_JSON)
     fun ended(body: Map<String, Any?>?): Response {
         val ok = engine.playEnded(
@@ -153,17 +153,17 @@ class SlopResource {
     }
 
     @OPTIONS
-    @Path("/slop/ended")
+    @Path("/ended")
     fun endedPreflight(): Response = Response.ok().build()
 
     @OPTIONS
-    @Path("/slop/play/{name}")
+    @Path("/play/{name}")
     fun playPreflight(): Response = Response.ok().build()
 
     // --- management routes -----------------------------------------------------------
 
     @POST
-    @Path("/slop/queue/{id}/{action}")
+    @Path("/queue/{id}/{action}")
     fun queueAction(@PathParam("id") id: String, @PathParam("action") action: String, body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
         val ok = when (SlopEngineQueueActions.of(action)) {
@@ -180,7 +180,7 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/suspend/{name}")
+    @Path("/suspend/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     fun suspend(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -189,7 +189,7 @@ class SlopResource {
     }
 
     @GET
-    @Path("/slop/triggers/{name}")
+    @Path("/triggers/{name}")
     fun getTriggers(@PathParam("name") name: String): Response {
         auth.requireStreamerOrSuperuser()
         val entry = engine.registryEntry(name)
@@ -198,7 +198,7 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/triggers/{name}")
+    @Path("/triggers/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     fun saveTriggers(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -207,7 +207,7 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/triggers/{name}/test")
+    @Path("/triggers/{name}/test")
     @Consumes(MediaType.APPLICATION_JSON)
     fun testTriggers(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -219,14 +219,14 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/cooldown/{name}/clear")
+    @Path("/cooldown/{name}/clear")
     fun cooldownClear(@PathParam("name") name: String): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.cooldownClear(name))).build()
     }
 
     @POST
-    @Path("/slop/trigger/dispatch")
+    @Path("/trigger/dispatch")
     @Consumes(MediaType.APPLICATION_JSON)
     fun dispatchTrigger(body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -249,7 +249,7 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/config")
+    @Path("/config")
     @Consumes(MediaType.APPLICATION_JSON)
     fun config(body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -264,21 +264,21 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/plays/pause")
+    @Path("/plays/pause")
     fun pause(): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.setPaused(true))).build()
     }
 
     @POST
-    @Path("/slop/plays/resume")
+    @Path("/plays/resume")
     fun resume(): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.setPaused(false))).build()
     }
 
     @POST
-    @Path("/slop/plays/remove")
+    @Path("/plays/remove")
     @Consumes(MediaType.APPLICATION_JSON)
     fun playsRemove(body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()
@@ -286,28 +286,28 @@ class SlopResource {
     }
 
     @POST
-    @Path("/slop/pending/{name}/approve")
+    @Path("/pending/{name}/approve")
     fun pendingApprove(@PathParam("name") name: String): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.approvePending(name))).build()
     }
 
     @POST
-    @Path("/slop/pending/{name}/reject")
+    @Path("/pending/{name}/reject")
     fun pendingReject(@PathParam("name") name: String): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.rejectPending(name))).build()
     }
 
     @POST
-    @Path("/slop/delete/{name}")
+    @Path("/delete/{name}")
     fun delete(@PathParam("name") name: String): Response {
         auth.requireStreamerOrSuperuser()
         return Response.ok(mapOf("ok" to engine.deleteSlop(name))).build()
     }
 
     @POST
-    @Path("/slop/build")
+    @Path("/build")
     @Consumes(MediaType.APPLICATION_JSON)
     fun build(body: Map<String, Any?>?): Response {
         auth.requireStreamerOrSuperuser()

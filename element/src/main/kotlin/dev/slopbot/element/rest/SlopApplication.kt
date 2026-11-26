@@ -79,6 +79,7 @@ class SlopApplication : Application() {
     override fun getClasses(): Set<Class<*>> = setOf(
         // Endpoints
         SlopResource::class.java,
+        SlopSessionResource::class.java,
         AdminResource::class.java,
         SlopAssetAdminResource::class.java,
         McpResource::class.java,

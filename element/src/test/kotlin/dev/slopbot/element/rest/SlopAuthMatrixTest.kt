@@ -1,6 +1,7 @@
 package dev.slopbot.element.rest
 
 import dev.getelements.elements.sdk.model.user.User
+import dev.getelements.elements.sdk.service.auth.SessionService
 import dev.getelements.elements.sdk.service.user.UserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -40,7 +41,16 @@ class SlopAuthMatrixTest {
         return u
     }
 
-    private fun auth(current: User?): SlopAuth = SlopAuth(FakeUserService(current))
+    private fun auth(current: User?): SlopAuth = SlopAuth(FakeUserService(current), ThrowingSessionService())
+
+    /** A SessionService stub that fails closed — the matrix tests never adopt cookies. */
+    private class ThrowingSessionService : SessionService {
+        override fun checkAndRefreshSessionIfNecessary(sessionSecret: String?) =
+            throw UnsupportedOperationException("no cookie sessions in the auth matrix")
+        override fun blacklistSession(sessionSecret: String?) =
+            throw UnsupportedOperationException()
+        // remaining methods are platform-only — unimplemented is fine for the matrix
+    }
 
     @Test
     fun `anonymous is 401 on the management gates`() {
