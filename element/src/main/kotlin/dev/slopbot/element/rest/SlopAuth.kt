@@ -93,9 +93,9 @@ class SlopAuth @Inject constructor(
         user != null && streamerLogin != null && user.name != null &&
             user.name.equals(streamerLogin, ignoreCase = true)
 
-    /** 401 when anonymous. */
-    fun requireAuthenticated(): User {
-        val user = currentUser() ?: throw unauthorized()
+    /** 401 when anonymous. Header session first, then the adopted cookie. */
+    fun requireAuthenticated(request: jakarta.servlet.http.HttpServletRequest? = null): User {
+        val user = currentUser(request) ?: throw unauthorized()
         return user
     }
 
@@ -104,8 +104,8 @@ class SlopAuth @Inject constructor(
      * streamer-or-superuser. `streamerLogin` scopes to a tenant when known
      * (e.g. the slop's own streamer); null accepts any tenant streamer.
      */
-    fun requireStreamerOrSuperuser(streamerLogin: String? = null): User {
-        val user = currentUser() ?: throw unauthorized()
+    fun requireStreamerOrSuperuser(request: jakarta.servlet.http.HttpServletRequest? = null, streamerLogin: String? = null): User {
+        val user = currentUser(request) ?: throw unauthorized()
         if (isSuperuser(user)) return user
         if (isStreamerFor(user, streamerLogin) || (streamerLogin == null && isStreamer(user))) return user
         throw forbidden()

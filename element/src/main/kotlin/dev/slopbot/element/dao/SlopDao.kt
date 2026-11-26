@@ -14,6 +14,7 @@ data class SlopPatch(
     val cooldownSeconds: Int? = null,
     val slopCommand: Boolean? = null,
     val suspended: Boolean? = null,
+    val nsfw: Boolean? = null,
     val pending: Boolean? = null,
     val title: String? = null,
     val moderation: String? = null,

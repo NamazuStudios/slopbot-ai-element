@@ -42,6 +42,9 @@ class Slop {
 
     var suspended: Boolean = false
 
+    /** The designer's NSFW flag — NSFW slops render glassed in the UI. */
+    var nsfw: Boolean = false
+
     var triggers: MutableList<Trigger> = mutableListOf()
 
     var cooldownSeconds: Int = 0

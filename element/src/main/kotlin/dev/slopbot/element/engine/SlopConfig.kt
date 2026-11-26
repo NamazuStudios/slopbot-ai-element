@@ -22,6 +22,10 @@ class SlopConfig {
         "triggerDispatchesPerMinute" to 6,
         "allowedTriggers" to TriggerEngine.DEFAULT_ALLOWED_TRIGGERS,
         "streamerCam" to null,
+        "genCommand" to "slopbuild",
+        "playCommand" to "slop",
+        "genWho" to "anyone",
+        "playWho" to "anyone",
     )
 
     /** The reference MODERATION_LEVELS — the tier rules, verbatim. */
@@ -147,6 +151,20 @@ class SlopConfig {
                     val level = value?.toString()
                     if (level == null || !moderationLevels.containsKey(level)) continue
                 }
+                "genCommand", "playCommand" -> {
+                    // The chat command's word after the fixed "!": lowercase,
+                    // letters/digits/underscores only, never empty.
+                    val word = value?.toString()?.trim()?.lowercase()
+                        ?.replace(Regex("[^a-z0-9_]"), "") ?: ""
+                    if (word.isEmpty()) continue
+                    value = word
+                }
+                "genWho", "playWho" -> {
+                    // Who may use the command: the four permission levels.
+                    val who = value?.toString()?.trim()?.lowercase()
+                    if (who == null || who !in listOf("anyone", "vips", "mods", "broadcaster")) continue
+                    value = who
+                }
             }
             if (key == "customRules" || key == "agentInstructions" || key == "model") {
                 value = value?.toString() ?: "" // clearing it back to '' must work
@@ -173,6 +191,7 @@ class SlopConfig {
             "maxSlopSeconds", "maxQueueDepth", "moderationLevel", "customRules",
             "agentInstructions", "model", "triggerDispatchesPerMinute", "allowedTriggers",
             "streamerCam", "superusers",
+            "genCommand", "playCommand", "genWho", "playWho",
         )
 
         private val DEFAULTS_FOR_KEYS = mapOf(

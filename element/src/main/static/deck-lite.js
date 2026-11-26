@@ -113,13 +113,37 @@ function render(s) {
   renderCounts(s);
 }
 
+let es = null;
+let current = PLACEHOLDER;
+
 async function tick() {
+  // LIVE: the SSE event stream carries registry/plays/queue pushes; the
+  // snapshot fetch only bootstraps (and re-syncs every 30s as a safety net).
   try {
     const res = await fetch(`${BASE}/slop`);
     if (!res.ok) throw new Error(res.status);
-    render(await res.json());
+    current = await res.json();
+    if (!es) connectEvents();
+    render(current);
   } catch {
-    render(PLACEHOLDER);
+    current = PLACEHOLDER;
+    render(current);
+  }
+}
+
+function connectEvents() {
+  es = new EventSource(`${BASE}/slop/events`);
+  for (const type of ['registry', 'plays', 'queue', 'note', 'complete', 'cooldowns', 'presented', 'stageclear', 'stream', 'dismissed']) {
+    es.addEventListener(type, (e) => {
+      let data = {};
+      try { data = JSON.parse(e.data); } catch (_) { /* keep {} */ }
+      if (type === 'registry' && data.registered) current.registered = data.registered;
+      if (type === 'plays' && data.current !== undefined) {
+        current.plays = { ...current.plays, current: data.current, upcoming: data.upcoming ?? current.plays.upcoming, paused: data.paused };
+      }
+      if (type === 'queue' && data.queue) current.queue = data.queue;
+      render(current);
+    });
   }
 }
 
@@ -131,7 +155,7 @@ document.addEventListener('click', (e) => {
     if (yes) {
       window.slopSureReset(cancel);
       hiddenGen.add(cancel.dataset.cancel);
-      render(last);
+      render(current);
       return;
     }
     if (no || cancel.dataset.asking === '1') { window.slopSureReset(cancel); return; }
@@ -145,7 +169,7 @@ document.addEventListener('click', (e) => {
     if (yes) {
       window.slopSureReset(unqueue);
       hiddenPlay.add(unqueue.dataset.unqueue);
-      render(last);
+      render(current);
       return;
     }
     if (no || unqueue.dataset.asking === '1') { window.slopSureReset(unqueue); return; }
@@ -163,4 +187,4 @@ document.addEventListener('click', (e) => {
 
 render(PLACEHOLDER);
 tick();
-setInterval(tick, 5000);
+setInterval(tick, 30000); // the SSE stream does the real-time work

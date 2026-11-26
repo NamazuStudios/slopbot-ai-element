@@ -144,7 +144,7 @@ class SlopResource {
     @POST
     @Path("/ended")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun ended(body: Map<String, Any?>?): Response {
+    fun ended(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
         val ok = engine.playEnded(
             (body?.get("name") ?: "").toString(),
             body?.get("playId")?.toString(),
@@ -164,8 +164,8 @@ class SlopResource {
 
     @POST
     @Path("/queue/{id}/{action}")
-    fun queueAction(@PathParam("id") id: String, @PathParam("action") action: String, body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun queueAction(@PathParam("id") id: String, @PathParam("action") action: String, body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val ok = when (SlopEngineQueueActions.of(action)) {
             SlopEngineQueueActions.PRESENT -> engine.present(id)
             SlopEngineQueueActions.DISMISS -> engine.dismiss(id)
@@ -182,16 +182,24 @@ class SlopResource {
     @POST
     @Path("/suspend/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun suspend(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun suspend(@PathParam("name") name: String, body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val suspended = body?.get("suspended")?.let { it == true || it == "true" } ?: true
         return Response.ok(mapOf("ok" to engine.suspend(name, suspended))).build()
     }
 
+    /** The NSFW flag — glassed cards in the dashboard. Streamer-or-superuser. */
+    @POST
+    @Path("/nsfw/{name}")
+    fun setNsfw(@PathParam("name") name: String, body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
+        return Response.ok(mapOf("ok" to engine.setNsfw(name, body?.get("nsfw")?.let { it == true || it == "true" } ?: true))).build()
+    }
+
     @GET
     @Path("/triggers/{name}")
-    fun getTriggers(@PathParam("name") name: String): Response {
-        auth.requireStreamerOrSuperuser()
+    fun getTriggers(@PathParam("name") name: String, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val entry = engine.registryEntry(name)
             ?: throw WebApplicationException(Response.status(404).entity(mapOf("error" to "no such slop")).build())
         return Response.ok(mapOf("triggers" to entry.triggers, "cooldownSeconds" to entry.cooldownSeconds, "slopCommand" to entry.slopCommand)).build()
@@ -200,8 +208,8 @@ class SlopResource {
     @POST
     @Path("/triggers/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun saveTriggers(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun saveTriggers(@PathParam("name") name: String, body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val rawList = body?.get("triggers") as? List<*>
         return Response.ok(engine.setTriggers(name, rawList, body?.get("cooldownSeconds"), body?.get("slopCommand"))).build()
     }
@@ -209,8 +217,8 @@ class SlopResource {
     @POST
     @Path("/triggers/{name}/test")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun testTriggers(@PathParam("name") name: String, body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun testTriggers(@PathParam("name") name: String, body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         if (engine.registryEntry(name) == null) {
             return Response.ok(mapOf("ok" to false, "error" to "no such slop")).build()
         }
@@ -220,16 +228,16 @@ class SlopResource {
 
     @POST
     @Path("/cooldown/{name}/clear")
-    fun cooldownClear(@PathParam("name") name: String): Response {
-        auth.requireStreamerOrSuperuser()
+    fun cooldownClear(@PathParam("name") name: String, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.cooldownClear(name))).build()
     }
 
     @POST
     @Path("/trigger/dispatch")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun dispatchTrigger(body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun dispatchTrigger(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val event = dev.slopbot.api.slop.SlopTriggerEvent(
             type = body?.get("type")?.toString() ?: "chat",
             userId = body?.get("userId")?.toString(),
@@ -251,8 +259,8 @@ class SlopResource {
     @POST
     @Path("/config")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun config(body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun config(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         val result = engine.config.configure(body ?: emptyMap())
         return Response.ok(
             if (result.ok) {
@@ -265,52 +273,52 @@ class SlopResource {
 
     @POST
     @Path("/plays/pause")
-    fun pause(): Response {
-        auth.requireStreamerOrSuperuser()
+    fun pause(@Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.setPaused(true))).build()
     }
 
     @POST
     @Path("/plays/resume")
-    fun resume(): Response {
-        auth.requireStreamerOrSuperuser()
+    fun resume(@Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.setPaused(false))).build()
     }
 
     @POST
     @Path("/plays/remove")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun playsRemove(body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun playsRemove(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.playRemove((body?.get("name") ?: "").toString()))).build()
     }
 
     @POST
     @Path("/pending/{name}/approve")
-    fun pendingApprove(@PathParam("name") name: String): Response {
-        auth.requireStreamerOrSuperuser()
+    fun pendingApprove(@PathParam("name") name: String, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.approvePending(name))).build()
     }
 
     @POST
     @Path("/pending/{name}/reject")
-    fun pendingReject(@PathParam("name") name: String): Response {
-        auth.requireStreamerOrSuperuser()
+    fun pendingReject(@PathParam("name") name: String, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.rejectPending(name))).build()
     }
 
     @POST
     @Path("/delete/{name}")
-    fun delete(@PathParam("name") name: String): Response {
-        auth.requireStreamerOrSuperuser()
+    fun delete(@PathParam("name") name: String, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.deleteSlop(name))).build()
     }
 
     @POST
     @Path("/build")
     @Consumes(MediaType.APPLICATION_JSON)
-    fun build(body: Map<String, Any?>?): Response {
-        auth.requireStreamerOrSuperuser()
+    fun build(body: Map<String, Any?>?, @Context request: jakarta.servlet.http.HttpServletRequest): Response {
+        auth.requireStreamerOrSuperuser(request)
         return Response.ok(mapOf("ok" to engine.buildDirect(body?.get("text")?.toString()))).build()
     }
 }

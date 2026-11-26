@@ -19,6 +19,7 @@ data class RegistryEntry(
     var controls: String? = null,
     var moderationLevel: String? = null,
     var suspended: Boolean = false,
+    var nsfw: Boolean = false,
     var triggers: List<Trigger> = emptyList(),
     var cooldownSeconds: Int = 60,
     var cooldownUntil: Long = 0,

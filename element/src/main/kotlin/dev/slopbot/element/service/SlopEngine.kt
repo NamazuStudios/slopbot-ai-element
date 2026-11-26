@@ -143,6 +143,7 @@ class SlopEngine @Inject constructor(
             controls = doc.metadata.controls,
             moderationLevel = doc.metadata.moderationLevel,
             suspended = doc.suspended,
+            nsfw = doc.nsfw,
             triggers = mergedTriggers(doc, code),
             cooldownSeconds = doc.cooldownSeconds,
             cooldownUntil = cooldowns.of(doc.name).until,
@@ -582,6 +583,15 @@ class SlopEngine @Inject constructor(
     // --- suspend / moderation verdicts / delete --------------------------------------
 
     /** Deck quick-suspend: a suspended slop can't play until restored. */
+    /** Sets the NSFW flag on the stored doc and refreshes the registry entry. */
+    fun setNsfw(name: String, nsfw: Boolean): Boolean {
+        val entry = registered[name] ?: return false
+        if (!slopDao.update(name, SlopPatch(nsfw = nsfw)).let { it != null }) return false
+        entry.nsfw = nsfw
+        events.broadcast("registry", mapOf("registered" to registered.values.toList()))
+        return true
+    }
+
     fun suspend(name: String, value: Boolean): Boolean {
         val entry = registered[name] ?: return false
         entry.suspended = value

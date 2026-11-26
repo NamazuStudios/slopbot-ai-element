@@ -31,6 +31,21 @@
   fetch('/slop/api/me').then((r) => {
     if (r.status === 401) location.href = 'index.html?login=required';
   }).catch(() => {});
+  // The playback screen: what the SSE 'plays' events say is on screen now.
+  fetch('/slop/api/slop').then((r) => r.json()).then((s) => {
+    if (s.plays?.current) document.getElementById('slop-msg').textContent = 'now playing — ' + (s.plays.current.title || s.plays.current.name);
+  }).catch(() => {});
+  const es = new EventSource('/slop/api/slop/events');
+  es.addEventListener('plays', (e) => {
+    try {
+      const d = JSON.parse(e.data);
+      document.getElementById('slop-msg').textContent = d.current
+        ? 'now playing — ' + (d.current.title || d.current.name) : 'nothing playing — this screen renders the current slop';
+    } catch (_) {}
+  });
+  es.addEventListener('complete', () => {
+    document.getElementById('slop-msg').textContent = 'nothing playing — this screen renders the current slop';
+  });
 </script>
 </body>
 </html>

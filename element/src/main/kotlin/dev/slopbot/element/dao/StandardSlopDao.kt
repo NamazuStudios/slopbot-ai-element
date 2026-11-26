@@ -88,6 +88,7 @@ class StandardSlopDao @Inject constructor(
         patch.cooldownSeconds?.let { slop.cooldownSeconds = it; touched = true }
         patch.slopCommand?.let { slop.slopCommand = it; touched = true }
         patch.suspended?.let { slop.suspended = it; touched = true }
+        patch.nsfw?.let { slop.nsfw = it; touched = true }
         patch.pending?.let { slop.moderation = if (it) Slop.MODERATION_PENDING else Slop.MODERATION_APPROVED; touched = true }
         patch.moderation?.let { slop.moderation = it; touched = true }
         patch.title?.let { slop.displayName = it; touched = true }

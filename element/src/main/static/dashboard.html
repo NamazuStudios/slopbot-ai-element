@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>slopbot.gg — Dashboard</title>
-<link rel="stylesheet" href="slopbot-ui.css">
+<link rel="stylesheet" href="/slopbot-ui.css">
 <style>
   body { display: flex; overflow: hidden; }
 
@@ -283,12 +283,12 @@
     <button data-pane="settings"><span class="ic">⚙️</span><span class="navlabel">Settings</span></button>
     <button data-pane="account"><span class="ic">👤</span><span class="navlabel">Account</span></button>
     <div class="divider"></div>
-    <a href="deck.html" target="_blank" rel="opener">
-      <button class="copy-link" data-copy="deck.html" title="copy link to this screen">⧉</button>
+    <a href="/deck.html" target="_blank" rel="opener">
+      <button class="copy-link" data-copy="/deck.html" title="copy link to this screen">⧉</button>
       <span class="ic">🎛️</span><span class="navlabel">Deck</span><span class="out-arrow">↗</span>
     </a>
-    <a href="slop-play.html" target="_blank" rel="opener">
-      <button class="copy-link" data-copy="slop-play.html" title="copy link to this screen">⧉</button>
+    <a href="/slop-play.html" target="_blank" rel="opener">
+      <button class="copy-link" data-copy="/slop-play.html" title="copy link to this screen">⧉</button>
       <span class="ic">📺</span><span class="navlabel">Slop</span><span class="out-arrow">↗</span>
     </a>
   </nav>
@@ -327,9 +327,9 @@
         <div class="card">
           <h3>Author a slop</h3>
           <label class="f">Prompt</label>
-          <input class="set-input" style="width:100%" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
+          <input class="set-input" style="width:100%" id="build-prompt" placeholder="e.g. a raccoon DJ drops a beat when someone follows">
           <div style="margin-top:.9rem; display:flex; gap:.6rem;">
-            <button class="btn">Send to build</button>
+            <button class="btn" id="send-build">Send to build</button>
             <button class="btn ghost">Save draft</button>
           </div>
         </div>
@@ -354,7 +354,7 @@
             </div>
             <div class="nested">
               <label class="f">Additional moderation instructions</label>
-              <textarea placeholder="e.g. no alcohol references, keep rivalries friendly"></textarea>
+              <textarea id="custom-rules" placeholder="e.g. no alcohol references, keep rivalries friendly"></textarea>
               <div class="hint">Passes directly into the moderation prompt — this build only.</div>
             </div>
           </div>
@@ -387,7 +387,7 @@
           </div>
           <div class="set-body">
             <label class="f">Agent notes</label>
-            <textarea placeholder="e.g. lean into late-night chat in-jokes; never use the rainbow palette"></textarea>
+            <textarea id="agent-notes" placeholder="e.g. lean into late-night chat in-jokes; never use the rainbow palette"></textarea>
           </div>
         </div>
 
@@ -406,7 +406,7 @@
 
       <div class="card">
         <h3>Build queue</h3>
-        <p style="color:var(--muted)">Nothing building. Slops you send land here with live progress.</p>
+        <div id="build-queue-body" style="color:var(--muted); font-size:.88rem;">Nothing building. Slops you send land here with live progress.</div>
       </div>
     </div>
   </section>
@@ -514,21 +514,21 @@
       <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Announce plays in chat</b><span>The bot posts the slop title when it airs</span></div>
-          <div class="set-ctl"><button class="toggle on" aria-label="announce plays"></button></div>
+          <div class="set-ctl"><button class="toggle on" id="announce-toggle" aria-label="announce plays"></button></div>
         </div>
       </div>
 
       <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Max slop seconds</b><span>The hard ceiling per play</span></div>
-          <div class="set-ctl"><input class="set-input num" value="60" inputmode="numeric"></div>
+          <div class="set-ctl"><input class="set-input num" id="max-seconds" value="60" inputmode="numeric"></div>
         </div>
       </div>
 
       <div class="card set-card">
         <div class="set-row">
           <div class="lab"><b>Max queue depth</b><span>How many builds may wait</span></div>
-          <div class="set-ctl"><input class="set-input num" value="10" inputmode="numeric"></div>
+          <div class="set-ctl"><input class="set-input num" id="queue-depth" value="10" inputmode="numeric"></div>
         </div>
       </div>
 
@@ -556,7 +556,7 @@
       </div>
 
       <div style="display:flex; gap:.6rem;">
-        <button class="btn">Save settings</button>
+        <button class="btn" id="settings-save">Save settings</button>
         <button class="btn ghost" id="settings-reset">Reset</button>
       </div>
     </div>
@@ -581,28 +581,57 @@
   </section>
 </main>
 
-<script src="slop-confirm.js"></script>
+<script src="/slop-confirm.js"></script>
+<script src="/slop-ui.js"></script>
 <script>
-  // ---------- slops (placeholder, per the look-and-feel pass) ----------
-  // `added` = days ago, so the Oldest/Newest sorts are visible.
-  const PLACEHOLDER_SLOPS = [
-    { title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2, enabled: true, nsfw: false },
-    { title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9, enabled: true, nsfw: true },
-    { title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4, enabled: true, nsfw: false },
-    { title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14, enabled: false, nsfw: false },
-    { title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1, enabled: true, nsfw: false },
-    { title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6, enabled: true, nsfw: true },
-  ];
+  // ---------- slops: LIVE from the engine (placeholders only as fallback) ----------
+  // The cards key on the slop NAME (the API key); search/sort/NSFW/gear all
+  // operate on the live registry, with per-user scoping (non-superusers see
+  // their own registry — streamer null or matching).
   const grid = document.getElementById('slops-grid');
   const search = document.getElementById('slop-search');
   const sortState = { mode: 'newest' };
-  window.__nsfwRevealed = new Set(); // per-card reveals, reset by the global toggle
+  window.__nsfwRevealed = new Set();
+  let SNAPSHOT = null;
+  let ME = null;
+  let ES = null;
+
+  const PLACEHOLDER_SLOPS = [
+    { name: 'rubbery-hotdog.js', title: 'Rubbery Hotdog', by: 'viewerdude', state: 'approved', plays: 12, added: 2, enabled: true, nsfw: false },
+    { name: 'cuck-chair-monsoon.js', title: 'Cuck Chair Monsoon', by: 'chatgremlin', state: 'approved', plays: 31, added: 9, enabled: true, nsfw: true },
+    { name: 'pixel-cat-pounce.js', title: 'Pixel Cat Pounce', by: 'lurkerno9', state: 'pending', plays: 0, added: 4, enabled: true, nsfw: false },
+    { name: 'spiky-pine-scam-hour.js', title: 'Spiky Pine Scam Hour', by: 'modlyperson', state: 'rejected', plays: 2, added: 14, enabled: false, nsfw: false },
+    { name: 'tomato-tribunal.js', title: 'Tomato Tribunal', by: 'savorysailor', state: 'approved', plays: 7, added: 1, enabled: true, nsfw: false },
+    { name: 'got-milk-bandit.js', title: 'Got Milk Bandit', by: 'absurdsage', state: 'pending', plays: 3, added: 6, enabled: true, nsfw: true },
+  ];
+
+  function liveEntries() {
+    if (!SNAPSHOT) return null;
+    const reg = SNAPSHOT.registered || [];
+    const mine = (ME && !ME.superuser)
+      ? reg.filter((e) => !e.streamer || [e.streamer.login, e.streamer.displayName].includes(ME.name) || [e.streamer.login, e.streamer.displayName].includes(ME.displayName))
+      : reg;
+    return mine.map((e) => ({
+      name: e.name,
+      title: e.title || e.name,
+      by: e.author || 'anonymous',
+      state: e.pending ? 'pending' : (e.moderationLevel || 'approved').toLowerCase(),
+      plays: e.playCount ?? 0,
+      added: Math.round((e.createdAt ?? 0) / 1000) || 0,
+      enabled: !e.suspended,
+      nsfw: Boolean(e.nsfw),
+      short: e.short || e.name,
+      suspended: Boolean(e.suspended),
+    }));
+  }
+
+  function currentSlops() { return liveEntries() || PLACEHOLDER_SLOPS; }
 
   function renderSlops() {
     const q = (search.value || '').trim().toLowerCase();
     const showNsfw = document.getElementById('nsfw-show').checked;
     const revealed = window.__nsfwRevealed;
-    let items = PLACEHOLDER_SLOPS.filter((s) => !q || s.title.toLowerCase().includes(q));
+    let items = currentSlops().filter((s) => !q || s.title.toLowerCase().includes(q));
     items = [...items].sort({
       oldest: (a, b) => a.added - b.added,
       newest: (a, b) => b.added - a.added,
@@ -614,28 +643,42 @@
       note.className = 'card';
       note.style.gridColumn = '1 / -1';
       note.style.color = 'var(--muted)';
-      note.textContent = `No slops match "${q}".`;
+      note.textContent = SNAPSHOT ? `No slops match "${q}".` : 'Loading your registry…';
       grid.appendChild(note);
       return;
     }
     for (const s of items) {
       const el = document.createElement('div');
       const disabled = s.enabled === false;
-      const blurred = s.nsfw && !showNsfw && !revealed.has(s.title);
+      const blurred = s.nsfw && !showNsfw && !revealed.has(s.name);
       el.className = 'card slop-card' + (disabled ? ' is-disabled' : '') + (blurred ? ' nsfw' : '');
       el.innerHTML = `<div class="slop-inner"><h4>${s.title}</h4><div class="by">by ${s.by} · ${s.plays} plays</div>
         <div class="row"><span class="pill ${disabled ? 'disabled' : s.state}">${disabled ? 'disabled' : s.state}</span>${s.nsfw ? '<span class="pill rejected">nsfw</span>' : ''}
           <span style="display:flex; gap:.4rem;">
-            <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.title}" title="Preview + triggers">⚙</button>
-            <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.title}">🗑</button>
+            <button class="btn ghost" style="padding:.3rem .6rem" data-play="${s.short}" title="play now">▶</button>
+            <button class="btn ghost" style="padding:.3rem .6rem" data-gear="${s.name}" title="Preview + triggers">⚙</button>
+            <button class="btn ghost" style="padding:.3rem .6rem" data-del="${s.name}" title="delete">🗑</button>
           </span></div></div>
-        ${blurred ? `<div class="glass" data-title="${s.title}"><span class="tag">🔒 NSFW</span><em>click to reveal</em></div>` : ''}`;
+        ${blurred ? `<div class="glass" data-title="${s.name}"><span class="tag">🔒 NSFW</span><em>click to reveal</em></div>` : ''}`;
       grid.appendChild(el);
     }
   }
+
+  async function loadSnapshot() {
+    try {
+      SNAPSHOT = await SLOP.snapshot();
+    } catch (e) {
+      if (e.status !== 401) SLOP.toast('The engine is not answering — placeholders shown', true);
+      return;
+    }
+    renderSlops();
+    renderBuildQueue();
+    fillSettings();
+  }
+
   search.addEventListener('input', renderSlops);
   document.getElementById('nsfw-show').addEventListener('change', () => {
-    window.__nsfwRevealed.clear(); // the global toggle resets every card's reveal state
+    window.__nsfwRevealed.clear();
     renderSlops();
   });
   document.querySelectorAll('#slop-sort .sort-opt').forEach((o) => {
@@ -646,7 +689,21 @@
       renderSlops();
     });
   });
-  renderSlops();
+
+  // the live event stream keeps the registry + queues fresh without polling
+  function liveEvents() {
+    if (ES) ES.close();
+    ES = SLOP.events((type, data) => {
+      if (!SNAPSHOT) return;
+      if (type === 'registry' && data.registered) { SNAPSHOT.registered = data.registered; renderSlops(); }
+      if (type === 'plays' && data.current !== undefined) {
+        SNAPSHOT.plays = { ...SNAPSHOT.plays, current: data.current, upcoming: data.upcoming ?? SNAPSHOT.plays.upcoming, paused: data.paused };
+      }
+      if (type === 'queue' && data.queue) SNAPSHOT.queue = data.queue;
+      if (type === 'note' && data.text) SLOP.toast(data.text);
+      renderBuildQueue();
+    });
+  }
 
   // ---------- router: /dashboard/{pane} paths ----------
   // Path-based: the element's embedded attributes map the static tree's
@@ -677,7 +734,6 @@
       activate(b.dataset.pane);
     });
   });
-  activate(paneFromPath());
   document.getElementById('collapse').addEventListener('click', () => {
     document.getElementById('drawer').classList.toggle('collapsed');
   });
@@ -738,7 +794,59 @@
     });
   });
 
-  // ---------- settings ----------
+  // ---------- settings: LIVE load + save (the engine's config surface) ----------
+  function fillSettings() {
+    const c = SNAPSHOT?.config;
+    if (!c) return;
+    if (c.genCommand) document.getElementById('gen-prefix').value = c.genCommand;
+    if (c.playCommand) document.getElementById('play-prefix').value = c.playCommand;
+    if (c.genWho) document.getElementById('gen-who').value = c.genWho;
+    if (c.playWho) document.getElementById('play-who').value = c.playWho;
+    if (c.moderationLevel) {
+      document.getElementById('mod-level').value = c.moderationLevel;
+      document.getElementById('mod-note').textContent = MOD_NOTES[c.moderationLevel] || '';
+    }
+    if (c.customRules != null) document.getElementById('custom-rules').value = c.customRules;
+    if (c.agentInstructions != null) document.getElementById('agent-notes').value = c.agentInstructions;
+    if (c.model) document.getElementById('model-select').value = c.model;
+    if (c.maxSlopSeconds) document.getElementById('max-seconds').value = c.maxSlopSeconds;
+    if (c.maxQueueDepth) document.getElementById('queue-depth').value = c.maxQueueDepth;
+    document.getElementById('announce-toggle').classList.toggle('on', c.announce !== false);
+    const cpOn = Boolean(c.rewardId || (c.redeemTitle && c.redeemTitle !== 'Make It Slop'));
+    document.getElementById('cp-toggle').classList.toggle('on', cpOn);
+    if (c.redeemTitle) document.getElementById('cp-reward').value = c.redeemTitle;
+    if (c.streamerCam) {
+      cam.x = c.streamerCam.x; cam.y = c.streamerCam.y; cam.w = c.streamerCam.w; cam.h = c.streamerCam.h;
+      renderCam();
+    }
+    syncCmdFields();
+  }
+
+  document.getElementById('settings-save').addEventListener('click', async () => {
+    const cpOn = document.getElementById('cp-toggle').classList.contains('on');
+    const patch = {
+      genCommand: document.getElementById('gen-prefix').value.trim(),
+      playCommand: document.getElementById('play-prefix').value.trim(),
+      genWho: document.getElementById('gen-who').value,
+      playWho: document.getElementById('play-who').value,
+      moderationLevel: document.getElementById('mod-level').value,
+      customRules: document.getElementById('custom-rules').value,
+      agentInstructions: document.getElementById('agent-notes').value,
+      model: document.getElementById('model-select').value,
+      maxSlopSeconds: Number(document.getElementById('max-seconds').value) || 60,
+      maxQueueDepth: Number(document.getElementById('queue-depth').value) || 10,
+      announce: document.getElementById('announce-toggle').classList.contains('on'),
+    };
+    if (cpOn) patch.redeemTitle = document.getElementById('cp-reward').value.trim();
+    try {
+      const res = await SLOP.api('/slop/api/slop/config', { body: patch });
+      if (res.ok) SLOP.toast('Settings saved.');
+      else SLOP.toast('Save rejected: ' + (res.error || 'unknown'), true);
+    } catch (e) {
+      SLOP.toast('Save failed: ' + e.message, true);
+    }
+  });
+
   const MOD_NOTES = {
     kid: 'Child-safe themes only. Very conservative in judgment.',
     teen: 'Somewhat crude humor (fart/poop jokes, light innuendo). No drugs or alcohol.',
@@ -806,6 +914,13 @@
       glass._t = setTimeout(renderSlops, 3000);
       return;
     }
+    const play = e.target.closest('[data-play]');
+    if (play) {
+      SLOP.api(`/slop/api/slop/play/${encodeURIComponent(play.dataset.play)}`, { body: { via: 'dashboard' } })
+        .then(() => SLOP.toast('Playing ' + play.dataset.play))
+        .catch((e) => SLOP.toast('Play failed: ' + e.message, true));
+      return;
+    }
     const gear = e.target.closest('[data-gear]');
     if (gear) { openSlopSettings(gear.dataset.gear); return; }
     const del = e.target.closest('[data-del]');
@@ -814,9 +929,15 @@
       const no = e.target.closest('[data-no]');
       if (yes) {
         window.slopSureReset(del);
-        const i = PLACEHOLDER_SLOPS.findIndex((s) => s.title === del.dataset.del);
-        if (i >= 0) PLACEHOLDER_SLOPS.splice(i, 1); // remove from the data, not just the DOM
-        renderSlops();
+        if (SNAPSHOT) {
+          SLOP.api(`/slop/api/slop/delete/${encodeURIComponent(del.dataset.del)}`, { method: 'POST' })
+            .then(() => SLOP.toast('Deleted.'))
+            .catch((e) => SLOP.toast('Delete failed: ' + e.message, true));
+        } else {
+          const i = PLACEHOLDER_SLOPS.findIndex((s) => s.name === del.dataset.del);
+          if (i >= 0) PLACEHOLDER_SLOPS.splice(i, 1);
+          renderSlops();
+        }
         return;
       }
       if (no || del.dataset.asking === '1') { window.slopSureReset(del); return; }
@@ -875,7 +996,7 @@
     ]),
   };
   const trigDetail = (t) => {
-    if (t.type === 'playslop') return `makes this slop eligible for the !${document.getElementById('play-prefix').value.trim() || 'slop'} command`;
+    if (t.type === 'playslop') return `makes this slop eligible for the !${(SNAPSHOT?.config?.playCommand) || document.getElementById('play-prefix').value.trim() || 'slop'} command`;
     if (t.type === 'chat' || t.type === 'firstchat') {
       const pats = (t.patterns || []).map((p) => `"${p}"`).join(', ') || 'no patterns';
       return `${t.mode} · ${pats} · ${WHO_LABELS[t.who] || 'anyone'}`;
@@ -896,7 +1017,7 @@
     return on.length === 3 ? 'tiers 1-3' : (on.map((n) => 'tier ' + n).join(', ') || 'no tiers');
   };
   const trigLabel = (t) => {
-    if (t.type === 'playslop') return `!${document.getElementById('play-prefix').value.trim() || 'slop'} (playback command)`;
+    if (t.type === 'playslop') return `!${(SNAPSHOT?.config?.playCommand) || document.getElementById('play-prefix').value.trim() || 'slop'} (playback command)`;
     return (TRIGGER_TYPES.find(([k]) => k === t.type) || [t.type, t.type])[1];
   };
   const newTrigger = (type) => {
@@ -926,10 +1047,27 @@
     });
   }
 
-  function openSlopSettings(title) {
-    const slop = PLACEHOLDER_SLOPS.find((s) => s.title === title);
-    if (!slop) return;
-    const list = (TRIGGERS[title] || []).map((t) => ({ ...t, tiers: t.tiers ? { ...t.tiers } : undefined }));
+  async function openSlopSettings(name) {
+    const slop = currentSlops().find((s) => s.name === name) || { name, title: name, enabled: true, nsfw: false };
+    let list = [];
+    let cooldownSeconds = null;
+    let slopCommand = true;
+    let loaded = false;
+    if (SNAPSHOT) {
+      try {
+        const api = await SLOP.api(`/slop/api/slop/triggers/${encodeURIComponent(name)}`);
+        list = (api.triggers || []).map((t) => ({ ...t, tiers: t.tiers ? { ...t.tiers } : undefined }));
+        cooldownSeconds = api.cooldownSeconds;
+        slopCommand = api.slopCommand !== false;
+        loaded = true;
+      } catch (e) { SLOP.toast('Could not load triggers: ' + e.message, true); }
+    } else {
+      list = (TRIGGERS[name] || []).map((t) => ({ ...t, tiers: t.tiers ? { ...t.tiers } : undefined }));
+    }
+    // the !{playback command} eligibility is the slop's slopCommand flag —
+    // shown as the synthetic first row, saved back as slopCommand
+    let playslopOn = slopCommand;
+    const title = slop.title;
 
     const backdrop = document.createElement('div');
     backdrop.className = 'confirm-backdrop';
@@ -947,6 +1085,10 @@
           <div class="set-row">
             <div class="lab"><b>Slop enabled</b><span>a disabled slop cannot be triggered and won't appear in the !slop search</span></div>
             <div class="set-ctl"><input type="checkbox" data-slop-enabled class="spt-check" ${slop.enabled !== false ? 'checked' : ''}></div>
+          </div>
+          <div class="set-row" style="margin-top:.6rem; padding-top:.6rem; border-top:1px solid var(--line);">
+            <div class="lab"><b>NSFW</b><span>the card renders glassed in the dashboard until revealed</span></div>
+            <div class="set-ctl"><input type="checkbox" data-nsfw class="spt-check" ${slop.nsfw ? 'checked' : ''}></div>
           </div>
         </div>
         <div class="spt-list"></div>
@@ -969,6 +1111,7 @@
     const modal = backdrop.querySelector('.slop-modal');
     const listBox = modal.querySelector('.spt-list');
     const enabledBox = modal.querySelector('[data-slop-enabled]');
+    const nsfwBox = modal.querySelector('[data-nsfw]');
 
     function paint() {
       listBox.innerHTML = '';
@@ -985,6 +1128,7 @@
           <div class="det"><b>${trigLabel(t)}</b><span data-det></span></div>
           <button class="toggle ${t.enabled ? 'on' : ''}" title="enable/disable"></button>
           ${removable ? '<button class="rm" title="Remove this trigger">✕</button>' : ''}`;
+        if (t.type === 'playslop') t.__onPlayslop = () => { playslopOn = t.enabled; };
         const det = row.querySelector('[data-det]');
         function paintDetail() {
           det.textContent = trigDetail(t);
@@ -1044,6 +1188,7 @@
           t.enabled = !t.enabled;
           e.target.classList.toggle('on', t.enabled);
           row.classList.toggle('off', !t.enabled);
+          if (t.__onPlayslop) t.__onPlayslop();
         });
         const rm = row.querySelector('.rm');
         if (rm) rm.addEventListener('click', () => {
@@ -1059,6 +1204,19 @@
 
     enabledBox.addEventListener('change', () => {
       slop.enabled = enabledBox.checked;
+      if (loaded) {
+        SLOP.api(`/slop/api/slop/suspend/${encodeURIComponent(name)}`, { body: { suspended: !enabledBox.checked } })
+          .then(() => SLOP.toast(enabledBox.checked ? 'Enabled.' : 'Disabled — it can no longer be triggered.'))
+          .catch((e) => SLOP.toast('Suspend failed: ' + e.message, true));
+      }
+    });
+    nsfwBox.addEventListener('change', () => {
+      slop.nsfw = nsfwBox.checked;
+      if (loaded) {
+        SLOP.api(`/slop/api/slop/nsfw/${encodeURIComponent(name)}`, { body: { nsfw: nsfwBox.checked } })
+          .then(() => SLOP.toast(nsfwBox.checked ? 'Marked NSFW — glassed in the dashboard.' : 'NSFW cleared.'))
+          .catch((e) => SLOP.toast('NSFW update failed: ' + e.message, true));
+      }
     });
     modal.querySelector('[data-add]').addEventListener('click', () => {
       list.push(newTrigger(modal.querySelector('[data-add-type]').value));
@@ -1081,7 +1239,7 @@
     modal.querySelector('.btns').before(saveHint);
     const hint = modal.querySelector('.spt-save-hint');
 
-    const done = (save) => {
+    const done = async (save) => {
       if (save) {
         // a redemption trigger without a reward name can't fire — block the save
         const unnamed = list.filter((t) => t.type === 'redemption' && t.enabled && !t.reward);
@@ -1094,16 +1252,57 @@
           }
           return; // stay open
         }
-        slop.enabled = enabledBox.checked;
+        if (loaded) {
+          try {
+            const payload = { triggers: list.filter((t) => t.type !== 'playslop'), slopCommand: playslopOn, cooldownSeconds };
+            if (cooldownSeconds == null) delete payload.cooldownSeconds;
+            await SLOP.api(`/slop/api/slop/triggers/${encodeURIComponent(name)}`, { body: payload });
+            SLOP.toast('Triggers saved.');
+          } catch (e) {
+            SLOP.toast('Save failed: ' + e.message, true);
+            return; // stay open
+          }
+        }
       }
       backdrop.remove();
-      renderSlops();
+      loadSnapshot();
     };
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) return done(false);
       const b = e.target.closest('[data-x]');
       if (b) done(b.dataset.x === 'save');
     });
+  }
+
+  // ---------- workshop: send to build + the live build queue ----------
+  document.getElementById('send-build').addEventListener('click', async () => {
+    const prompt = document.getElementById('build-prompt').value.trim();
+    if (!prompt) { SLOP.toast('Write a prompt first.', true); return; }
+    const body = { text: prompt };
+    // the per-build overrides ride along when their toggles are on
+    const ovs = [...document.querySelectorAll('#pane-workshop .ov-card')];
+    const val = (i) => ovs[i]?.querySelector('select, input, textarea')?.value;
+    if (ovs[0]?.classList.contains('expanded')) body.moderationLevel = ovs[0].querySelector('select').value;
+    if (ovs[1]?.classList.contains('expanded')) body.model = ovs[1].querySelector('select').value;
+    if (ovs[2]?.classList.contains('expanded')) body.agentNotes = ovs[2].querySelector('textarea').value;
+    if (ovs[3]?.classList.contains('expanded')) body.maxSeconds = Number(ovs[3].querySelector('input').value) || 60;
+    try {
+      await SLOP.api('/slop/api/slop/build', { body });
+      SLOP.toast('Build queued — watch the build queue.');
+      document.getElementById('build-prompt').value = '';
+    } catch (e) {
+      SLOP.toast('Build failed: ' + e.message, true);
+    }
+  });
+
+  function renderBuildQueue() {
+    const body = document.getElementById('build-queue-body');
+    if (!body || !SNAPSHOT) return;
+    const parts = [];
+    const gen = SNAPSHOT.generation;
+    if (gen) parts.push(`<div style="color:var(--warn)">building now — "${(gen.text || '').slice(0, 60)}"</div>`);
+    for (const q of SNAPSHOT.queue || []) parts.push(`<div>queued — "${(q.text || q.prompt || '').slice(0, 60)}"</div>`);
+    body.innerHTML = parts.length ? parts.join('') : 'Nothing building. Slops you send land here with live progress.';
   }
 
   // ---------- the streamer cam picker: drag to place, corner to resize (0–1) ----------
@@ -1217,7 +1416,6 @@
       const who = document.querySelector('.page-head .who');
       who.querySelector('.avatar').outerHTML = avatar;
       who.querySelector('span').textContent = me.displayName || me.name || 'streamer';
-      const t = me.twitch || {};
       document.getElementById('pane-account').innerHTML = `
         <div class="account" style="max-width:560px;">
           <div class="card">
@@ -1237,7 +1435,13 @@
     } catch (_) { /* offline — placeholders stand */ }
   }
 
+  activate(paneFromPath());
   finishLogin();
+  (async () => {
+    ME = await SLOP.me();
+    await loadSnapshot();
+    if (SNAPSHOT) liveEvents();
+  })();
   loadMe();
 </script>
 </body>

@@ -58,7 +58,7 @@ class SlopAuthMatrixTest {
         val e401 = assertThrows<WebApplicationException> { a.requireAuthenticated() }
         assertEquals(401, e401.response.status)
         assertEquals(401, assertThrows<WebApplicationException> { a.requireStreamerOrSuperuser() }.response.status)
-        assertEquals(401, assertThrows<WebApplicationException> { a.requireStreamerOrSuperuser("savorysailor") }.response.status)
+        assertEquals(401, assertThrows<WebApplicationException> { a.requireStreamerOrSuperuser(null, "savorysailor") }.response.status)
         assertEquals(401, assertThrows<WebApplicationException> { a.requireSuperuser() }.response.status)
     }
 
@@ -66,7 +66,7 @@ class SlopAuthMatrixTest {
     fun `a viewer (USER, not the tenant owner) is 403 on tenant-scoped management`() {
         val a = auth(user(User.Level.USER, name = "viewer"))
         // Tenant-scoped management: the viewer is not the streamer → 403.
-        assertEquals(403, assertThrows<WebApplicationException> { a.requireStreamerOrSuperuser("savorysailor") }.response.status)
+        assertEquals(403, assertThrows<WebApplicationException> { a.requireStreamerOrSuperuser(null, "savorysailor") }.response.status)
         // Tenant-unscoped management: the element's tenancy is self-serve —
         // every Twitch login is a streamer identity operating their own
         // channel, so an authenticated USER passes (their data access is
@@ -80,15 +80,15 @@ class SlopAuthMatrixTest {
     @Test
     fun `the tenant streamer passes the management gate`() {
         val a = auth(user(User.Level.USER, name = "savorysailor"))
-        assertEquals("savorysailor", a.requireStreamerOrSuperuser("savorysailor").name)
+        assertEquals("savorysailor", a.requireStreamerOrSuperuser(null, "savorysailor").name)
         // Case-insensitive login == channel matching.
-        assertEquals("savorysailor", a.requireStreamerOrSuperuser("SavorySailor").name)
+        assertEquals("savorysailor", a.requireStreamerOrSuperuser(null, "SavorySailor").name)
     }
 
     @Test
     fun `a superuser passes every gate`() {
         val a = auth(user(User.Level.SUPERUSER, name = "root"))
-        assertEquals("root", a.requireStreamerOrSuperuser("savorysailor").name)
+        assertEquals("root", a.requireStreamerOrSuperuser(null, "savorysailor").name)
         assertEquals("root", a.requireSuperuser().name)
     }
 
