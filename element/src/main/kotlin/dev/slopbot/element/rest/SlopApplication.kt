@@ -73,6 +73,23 @@ class SlopApplication : Application() {
         @ElementDefaultAttribute("")
         val POD_WS_TOKEN: String = "dev.slopbot.element.pod.ws.token"
 
+        // -- the pod dispatcher (Phase C item 4 / Pod Boot Mechanics) --
+        @JvmField
+        @ElementDefaultAttribute("")
+        val CONDUCTOR_URL: String = "dev.slopbot.element.conductor.url"
+
+        @JvmField
+        @ElementDefaultAttribute("")
+        val CONDUCTOR_CREDENTIAL: String = "dev.slopbot.element.conductor.credential"
+
+        @JvmField
+        @ElementDefaultAttribute("slopbot-pod")
+        val CONDUCTOR_PROFILE: String = "dev.slopbot.element.conductor.profile"
+
+        @JvmField
+        @ElementDefaultAttribute("dev.getelements.conductor.kubernetes")
+        val CONDUCTOR_PROVIDER: String = "dev.slopbot.element.conductor.provider"
+
         const val OPENAPI_TAG: String = "SlopBot AI"
     }
 
@@ -80,6 +97,7 @@ class SlopApplication : Application() {
         // Endpoints
         SlopResource::class.java,
         SlopSessionResource::class.java,
+        SlopPodResource::class.java,
         AdminResource::class.java,
         SlopAssetAdminResource::class.java,
         McpResource::class.java,

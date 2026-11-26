@@ -50,6 +50,7 @@ class SlopbotDatabaseProvider @Inject constructor(
                 map(SlopAsset::class.java)
                 map(SlopAudit::class.java)
                 map(SlopModification::class.java)
+                map(dev.slopbot.element.model.PodLease::class.java)
             }
             datastore.ensureIndexes()
             val created = SlopbotDatabase(datastore)

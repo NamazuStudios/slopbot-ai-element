@@ -7,6 +7,8 @@ import dev.slopbot.element.dao.SlopAuditDao
 import dev.slopbot.element.dao.SlopAuditor
 import dev.slopbot.element.dao.SlopDao
 import dev.slopbot.element.dao.SlopHistoryDao
+import dev.slopbot.element.dao.SlopPodLeaseDao
+import dev.slopbot.element.dao.StandardSlopPodLeaseDao
 import dev.slopbot.element.dao.SourceStore
 import dev.slopbot.element.dao.StandardSlopAssetDao
 import dev.slopbot.element.dao.StandardSlopAuditDao
@@ -20,6 +22,7 @@ import dev.slopbot.element.mcp.OidcValidator
 import dev.slopbot.element.rest.SlopAuth
 import dev.slopbot.element.service.SlopAssetAdmin
 import dev.slopbot.element.service.SlopEngine
+import dev.slopbot.element.service.SlopPodRegistry
 import dev.slopbot.element.spi.SlopbotDatabase
 import dev.slopbot.element.spi.SlopbotDatabaseProvider
 import dev.slopbot.element.spi.SlopbotOidcConfig
@@ -92,6 +95,8 @@ class SlopModule : PrivateModule() {
         //
         // Resolved lazily through the ServiceLocator per request instead, so
         // each request constructs SlopAuth inside its own scope.
+        bind(SlopPodLeaseDao::class.java).to(StandardSlopPodLeaseDao::class.java)
+        bind(SlopPodRegistry::class.java).asEagerSingleton()
         bind(SlopAuth::class.java)
 
         // Expose every service the element's own classes resolve through the
@@ -108,6 +113,7 @@ class SlopModule : PrivateModule() {
         // not declared on the package made every REST request fail with
         // SdkServiceNotFoundException (seen live on 3.9.0-rc-9).
         expose(SlopEngine::class.java)
+        expose(SlopPodRegistry::class.java)
         expose(SlopEvents::class.java)
         expose(SlopDao::class.java)
         expose(SlopAuditDao::class.java)
