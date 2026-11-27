@@ -111,7 +111,7 @@ class SlopEngine @Inject constructor(
                     log.warn("the Conductor call failed inside the dispatch: {}", r["conductor"])
             }
         } catch (e: Exception) {
-            log.warn("pod dispatch failed (the build keeps waiting): {}", e.toString())
+            log.warn("pod dispatch failed (the build keeps waiting)", e)
         }
     }
 
