@@ -52,14 +52,8 @@ class TwitchAuthorizeResource {
     private fun providerCredentials(): AppCredentials? {
         val elementRecord = element.getElementRecord()
         val attrs = elementRecord.attributes()
-        fun attr(name: String): String? = attrs.getAttributeOptional(name)?.let { raw ->
-            // The attribute value deserializes as a Document({value: ...}) or an
-            // Optional toString — unwrap both shapes to the plain string.
-            val asString = raw.toString()
-            Regex("^\\{\\s*\"value\"\\s*:\\s*\"(.*)\"\\s*\\}\\s*$").find(asString)?.groupValues?.get(1)
-                ?: Regex("^Optional\\[(.*)\\]$").find(asString)?.groupValues?.get(1)
-                ?: asString.takeIf { it != "Optional.empty" }
-        }        
+        fun attr(name: String): String? =
+            dev.slopbot.element.AttrUnwrap.unwrap(attrs.getAttributeOptional(name).orElse(null))
         val clientId = attr("dev.slopbot.element.twitch.app.client-id") ?: return null
         val clientSecret = attr("dev.slopbot.element.twitch.app.client-secret") ?: return null
         return AppCredentials(clientId, clientSecret)

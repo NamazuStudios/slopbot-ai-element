@@ -48,7 +48,10 @@ class SlopPodRegistry @Inject constructor(
             "SLOP_TWITCH_USERNAME" to (auth.broadcasterLogin),
             "SLOP_TWITCH_OAUTH_TOKEN" to (auth.accessToken),
             "SLOP_TWITCH_BROADCASTER_ID" to (auth.broadcasterId),
-        )} ?: emptyMap()
+            "SLOP_CHANNEL" to (auth.broadcasterLogin),
+        )} ?: mapOf(
+            "SLOP_CHANNEL" to streamer,
+        )
         // The conductor provider is a SIBLING element. From this element's
         // own registry, find it by name and take its locator.
         val element = dev.getelements.elements.sdk.ElementSupplier
@@ -57,16 +60,35 @@ class SlopPodRegistry @Inject constructor(
             .find("dev.getelements.conductor.kubernetes")
             .findFirst()
             .orElseThrow { IllegalStateException("the conductor kubernetes provider is not deployed") }
-        val orchestration = conductorElement.getServiceLocator()
-            .getInstance(dev.getelements.conductor.service.OrchestrationService::class.java)
-        val profile = orchestration.findAvailableProfile("slopbot-pod")
-            ?: return mapOf("error" to "no such profile: slopbot-pod (is the PodTemplate labeled with the provider's job set?)")
+        val orchestration = try {
+            conductorElement.getServiceLocator()
+                .getInstance(dev.getelements.conductor.service.OrchestrationService::class.java)
+        } catch (e: Exception) {
+            // surface the ROOT cause — Guice wraps the provider's failure and the
+            // innermost error (the real fabric8 failure) hides in the cause chain
+            var root: Throwable = e
+            while (root.cause != null && root.cause != root) root = root.cause!!
+            throw IllegalStateException("the conductor client failed to construct: ${root.javaClass.name}: ${root.message}", e)
+        }
+        // The profile ID is the SCOPED form — "$namespace:$templateName" — not the bare name.
+        val profiles = orchestration.getAvailableProfiles()
+        val profile = profiles.firstOrNull { it.id.endsWith(":slopbot-pod") || it.id == "slopbot-pod" }
+            ?: return mapOf(
+                "error" to "no such profile: slopbot-pod (is the PodTemplate labeled with the provider's job set?)",
+                "available" to profiles.map { it.id },
+            )
         val execution = orchestration.execute(
             dev.getelements.conductor.JobRequest(
                 profile = profile,
                 environment = twitchEnv + mapOf(
                     "SLOP_ELM_URL" to elmUrl(),
+                    "SLOP_ELEMENTS_URL" to elmUrl(),
+                    "SLOP_MCP_URL" to (elmUrl() + "/slop/api/mcp"),
+                    "SLOP_PROXY_AUDIENCE" to "slopbot-test",
+                    "SLOP_RELAY_PORT" to "8090",
                     "SLOP_POD_TOKEN" to token,
+                    "SLOP_OIDC_TOKEN" to token,
+                    "SLOP_STREAMER" to streamer,
                     "SLOP_POD_STREAMER" to streamer,
                     "SLOP_POD_MODE" to mode,
                 ),
@@ -76,16 +98,13 @@ class SlopPodRegistry @Inject constructor(
     }
 
     /** The ELM's own REST root, for the pod's lease calls. */
-    private fun elmUrl(): String {
-        val element = dev.getelements.elements.sdk.ElementSupplier
-            .getElementLocal(SlopPodRegistry::class.java).get()
-        val attrs = element.getElementRecord().attributes()
-        val raw = attrs.getAttributeOptional("dev.slopbot.element.elm.url")?.toString() ?: ""
-        val unwrapped = Regex("^\\{\\s*\"value\"\\s*:\\s*\"(.*)\"\\s*\\}\\s*$").find(raw)?.groupValues?.get(1)
-            ?: Regex("^Optional\\[(.*)\\]$").find(raw)?.groupValues?.get(1)
-            ?: raw.takeIf { it != "Optional.empty" }
-        return (unwrapped ?: "").takeIf { it.isNotEmpty() } ?: "http://localhost:8080"
-    }
+    private fun elmUrl(): String =
+        dev.slopbot.element.AttrUnwrap.unwrap(
+            dev.getelements.elements.sdk.ElementSupplier
+                .getElementLocal(SlopPodRegistry::class.java).get()
+                .getElementRecord().attributes()
+                .getAttributeOptional("dev.slopbot.element.elm.url").orElse(null)
+        ) ?: "http://localhost:8080"
 
     /** The per-pod token's hash — the raw token is returned ONCE at dispatch. */
     private fun hash(token: String): String =
